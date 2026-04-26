@@ -55,7 +55,6 @@ public class ItemDonHang implements Serializable {
     public int getTonKho() { return loSanPham.getSoLuongTon(); }
 
     public boolean isKhoaChinhSua() { return khoaChinhSua; }
-    public Map<String, QuyCachDongGoi> getMapQuyCach() { return mapQuyCach; }
 
     public void setKhoaChinhSua(boolean khoaChinhSua) { this.khoaChinhSua = khoaChinhSua; }
 
