@@ -11,9 +11,7 @@ public class ChiTietBangGia implements Serializable {
         @Embeddable
     public static class Id implements Serializable {
         private String maBangGia;
-        @Column(precision = 18, scale = 2)
         private double giaTu;
-        @Column(precision = 18, scale = 2)
         private double giaDen;
 
         public Id() {}
