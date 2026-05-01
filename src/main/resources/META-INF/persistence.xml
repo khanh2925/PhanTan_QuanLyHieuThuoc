@@ -6,35 +6,35 @@
     <persistence-unit name="quanlyhieuthuoc-pu" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.BangGia</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.ChiTietBangGia</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.ChiTietHoaDon</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.ChiTietKhuyenMaiSanPham</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.ChiTietPhieuHuy</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.ChiTietPhieuNhap</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.ChiTietPhieuTra</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.DonViTinh</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.HoaDon</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.KhachHang</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.KhuyenMai</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.LoSanPham</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.NhaCungCap</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.NhanVien</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.PhieuHuy</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.PhieuNhap</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.PhieuTra</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.QuyCachDongGoi</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.SanPham</class>
-        <class>iuh.fit.quanlyhieuthuoc.core.entity.TaiKhoan</class>
+        <class>entity.BangGia</class>
+        <class>entity.ChiTietBangGia</class>
+        <class>entity.ChiTietHoaDon</class>
+        <class>entity.ChiTietKhuyenMaiSanPham</class>
+        <class>entity.ChiTietPhieuHuy</class>
+        <class>entity.ChiTietPhieuNhap</class>
+        <class>entity.ChiTietPhieuTra</class>
+        <class>entity.DonViTinh</class>
+        <class>entity.HoaDon</class>
+        <class>entity.KhachHang</class>
+        <class>entity.KhuyenMai</class>
+        <class>entity.LoSanPham</class>
+        <class>entity.NhaCungCap</class>
+        <class>entity.NhanVien</class>
+        <class>entity.PhieuHuy</class>
+        <class>entity.PhieuNhap</class>
+        <class>entity.PhieuTra</class>
+        <class>entity.QuyCachDongGoi</class>
+        <class>entity.SanPham</class>
+        <class>entity.TaiKhoan</class>
 
         <properties>
-            <property name="jakarta.persistence.jdbc.driver" value="com.microsoft.sqlserver.jdbc.SQLServerDriver"/>
-            <property name="jakarta.persistence.jdbc.url" value="jdbc:sqlserver://localhost:1433;databaseName=QuanLyHieuThuoc;encrypt=false;trustServerCertificate=true;"/>
-            <property name="jakarta.persistence.jdbc.user" value="sa"/>
+            <property name="jakarta.persistence.jdbc.driver" value="org.mariadb.jdbc.Driver"/>
+            <property name="jakarta.persistence.jdbc.url" value="jdbc:mariadb://localhost:3306/QuanLyHieuThuoc?createDatabaseIfNotExist=true"/>
+            <property name="jakarta.persistence.jdbc.user" value="root"/>
             <property name="jakarta.persistence.jdbc.password" value="sapassword"/>
 
-            <property name="hibernate.dialect" value="org.hibernate.dialect.SQLServerDialect"/>
-            <property name="hibernate.hbm2ddl.auto" value="create"/>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MariaDBDialect"/>
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
             <property name="hibernate.show_sql" value="true"/>
             <property name="hibernate.format_sql" value="true"/>
         </properties>

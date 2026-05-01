@@ -1,0 +1,75 @@
+package service.impl;
+
+import java.util.List;
+
+import dao.ChiTietKhuyenMaiSanPhamDao;
+import dao.KhuyenMaiDao;
+import dao.iml.ChiTietKhuyenMaiSanPhamDaoImpl;
+import dao.iml.KhuyenMaiDaoImpl;
+import dto.ChiTietKhuyenMaiSanPhamDTO;
+import dto.KhuyenMaiDTO;
+import entity.KhuyenMai;
+import mapper.Mapper;
+import service.KhuyenMaiService;
+
+public class KhuyenMaiServiceImpl implements KhuyenMaiService {
+
+    private final KhuyenMaiDao khuyenMaiDao;
+    private final ChiTietKhuyenMaiSanPhamDao chiTietKhuyenMaiDao;
+
+    public KhuyenMaiServiceImpl() {
+        this.khuyenMaiDao = new KhuyenMaiDaoImpl();
+        this.chiTietKhuyenMaiDao = new ChiTietKhuyenMaiSanPhamDaoImpl();
+    }
+
+    public KhuyenMaiServiceImpl(KhuyenMaiDao khuyenMaiDao,
+                                ChiTietKhuyenMaiSanPhamDao chiTietKhuyenMaiDao) {
+        this.khuyenMaiDao = khuyenMaiDao;
+        this.chiTietKhuyenMaiDao = chiTietKhuyenMaiDao;
+    }
+
+    @Override
+    public List<KhuyenMaiDTO> layTatCaKhuyenMai() {
+        return Mapper.mapList(khuyenMaiDao.layTatCaKhuyenMai(), KhuyenMaiDTO.class);
+    }
+
+    @Override
+    public KhuyenMaiDTO layKhuyenMaiTheoMa(String maKM) {
+        return Mapper.map(khuyenMaiDao.timKhuyenMaiTheoMa(maKM), KhuyenMaiDTO.class);
+    }
+
+    @Override
+    public List<KhuyenMaiDTO> layKhuyenMaiDangHoatDong() {
+        return Mapper.mapList(khuyenMaiDao.layKhuyenMaiDangHoatDong(), KhuyenMaiDTO.class);
+    }
+
+    @Override
+    public List<ChiTietKhuyenMaiSanPhamDTO> layChiTietKhuyenMaiTheoMaKM(String maKM) {
+        return Mapper.mapList(chiTietKhuyenMaiDao.layChiTietKhuyenMaiTheoMaCoJoin(maKM), ChiTietKhuyenMaiSanPhamDTO.class);
+    }
+
+    @Override
+    public boolean themKhuyenMai(KhuyenMaiDTO km) {
+        return khuyenMaiDao.themKhuyenMai(Mapper.map(km, KhuyenMai.class));
+    }
+
+    @Override
+    public boolean capNhatKhuyenMai(KhuyenMaiDTO km) {
+        return khuyenMaiDao.capNhatKhuyenMai(Mapper.map(km, KhuyenMai.class));
+    }
+
+    @Override
+    public boolean xoaKhuyenMai(String maKM) {
+        return khuyenMaiDao.xoaKhuyenMai(maKM);
+    }
+
+    @Override
+    public String taoMaKhuyenMaiTuDong() {
+        return khuyenMaiDao.taoMaKhuyenMai();
+    }
+
+    @Override
+    public void refreshCache() {
+        // KhuyenMaiDao khong co cache rieng.
+    }
+}
