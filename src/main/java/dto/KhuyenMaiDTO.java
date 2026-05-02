@@ -3,8 +3,6 @@ package dto;
 import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 
-import entity.KhuyenMai;
-
 public class KhuyenMaiDTO implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -23,23 +21,6 @@ public class KhuyenMaiDTO implements Serializable {
     private boolean dangHoatDong;
 
     public KhuyenMaiDTO() {}
-
-    public static KhuyenMaiDTO fromEntity(KhuyenMai km) {
-        KhuyenMaiDTO dto = new KhuyenMaiDTO();
-        dto.maKM = km.getMaKM();
-        dto.tenKM = km.getTenKM();
-        dto.ngayBatDau = km.getNgayBatDau() != null ? km.getNgayBatDau().format(DATE_FORMAT) : "";
-        dto.ngayKetThuc = km.getNgayKetThuc() != null ? km.getNgayKetThuc().format(DATE_FORMAT) : "";
-        dto.trangThai = km.isTrangThai();
-        dto.khuyenMaiHoaDon = km.isKhuyenMaiHoaDon();
-        dto.loaiKhuyenMai = km.isKhuyenMaiHoaDon() ? "Hoa don" : "San pham";
-        dto.hinhThuc = km.getHinhThuc() != null ? km.getHinhThuc().name() : "";
-        dto.giaTri = km.getGiaTri();
-        dto.dieuKienApDungHoaDon = km.getDieuKienApDungHoaDon();
-        dto.soLuongKhuyenMai = km.getSoLuongKhuyenMai();
-        dto.dangHoatDong = km.isDangHoatDong();
-        return dto;
-    }
 
     public String getMaKM() { return maKM; }
     public void setMaKM(String maKM) { this.maKM = maKM; }

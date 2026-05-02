@@ -2,8 +2,6 @@ package dto;
 
 import java.io.Serializable;
 
-import entity.TaiKhoan;
-
 public class TaiKhoanDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -16,17 +14,6 @@ public class TaiKhoanDTO implements Serializable {
     private boolean nhanVienDangLam;
 
     public TaiKhoanDTO() {}
-
-    public static TaiKhoanDTO fromEntity(TaiKhoan tk) {
-        TaiKhoanDTO dto = new TaiKhoanDTO();
-        dto.maTaiKhoan = tk.getMaTaiKhoan();
-        dto.tenDangNhap = tk.getTenDangNhap();
-        dto.maNhanVien = tk.getNhanVien() != null ? tk.getNhanVien().getMaNhanVien() : "";
-        dto.tenNhanVien = tk.getNhanVien() != null ? tk.getNhanVien().getTenNhanVien() : "";
-        dto.vaiTro = tk.getNhanVien() != null && tk.getNhanVien().isQuanLy() ? "Quan ly" : "Nhan vien";
-        dto.nhanVienDangLam = tk.getNhanVien() == null || tk.getNhanVien().isTrangThai();
-        return dto;
-    }
 
     public String getMaTaiKhoan() { return maTaiKhoan; }
     public void setMaTaiKhoan(String maTaiKhoan) { this.maTaiKhoan = maTaiKhoan; }

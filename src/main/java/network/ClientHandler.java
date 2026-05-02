@@ -23,6 +23,7 @@ public class ClientHandler implements Runnable {
     private final KhuyenMaiService khuyenMaiService;
     private final LoSanPhamService loSanPhamService;
     private final PhieuNhapService phieuNhapService;
+    private final NhaCungCapService nhaCungCapService;
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -34,6 +35,7 @@ public class ClientHandler implements Runnable {
         this.khuyenMaiService = new KhuyenMaiServiceImpl();
         this.loSanPhamService = new LoSanPhamServiceImpl();
         this.phieuNhapService = new PhieuNhapServiceImpl();
+        this.nhaCungCapService = new NhaCungCapServiceImpl();
     }
 
     @Override
@@ -316,6 +318,18 @@ public class ClientHandler implements Runnable {
                     response.setSuccess(true);
                     response.setData(khuyenMaiService.taoMaKhuyenMaiTuDong());
                 }
+                case KHUYENMAI_THEM_CHI_TIET_SP -> {
+                    Object[] params = (Object[]) data;
+                    boolean ok = khuyenMaiService.themChiTietKhuyenMaiSanPham((String) params[0], (String) params[1]);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "Thêm sản phẩm vào khuyến mãi thành công" : "Thêm sản phẩm vào khuyến mãi thất bại");
+                }
+                case KHUYENMAI_XOA_CHI_TIET_SP -> {
+                    Object[] params = (Object[]) data;
+                    boolean ok = khuyenMaiService.xoaChiTietKhuyenMaiSanPham((String) params[0], (String) params[1]);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "Xóa sản phẩm khỏi khuyến mãi thành công" : "Xóa sản phẩm khỏi khuyến mãi thất bại");
+                }
 
                 // ==================== LoSanPham ====================
                 case LOSANPHAM_LAY_TAT_CA -> {
@@ -397,6 +411,37 @@ public class ClientHandler implements Runnable {
                 case PHIEUNHAP_TAO_MA -> {
                     response.setSuccess(true);
                     response.setData(phieuNhapService.taoMaPhieuNhapTuDong());
+                }
+
+                // ==================== NhaCungCap ====================
+                case NHACUNGCAP_LAY_TAT_CA -> {
+                    response.setSuccess(true);
+                    response.setData(nhaCungCapService.layTatCaNhaCungCap());
+                }
+                case NHACUNGCAP_LAY_THEO_MA_HOAC_SDT -> {
+                    NhaCungCap ncc = nhaCungCapService.layNhaCungCapTheoMaHoacSDT((String) data);
+                    response.setSuccess(ncc != null);
+                    response.setData(ncc);
+                    response.setMessage(ncc != null ? "Tìm thấy" : "Không tìm thấy nhà cung cấp");
+                }
+                case NHACUNGCAP_TIM_KIEM -> {
+                    Object[] params = (Object[]) data;
+                    response.setSuccess(true);
+                    response.setData(nhaCungCapService.timKiemNCC((String) params[0], (String) params[1], (String) params[2], (String) params[3]));
+                }
+                case NHACUNGCAP_THEM -> {
+                    boolean ok = nhaCungCapService.themNhaCungCap((NhaCungCap) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "Thêm nhà cung cấp thành công" : "Thêm nhà cung cấp thất bại");
+                }
+                case NHACUNGCAP_CAP_NHAT -> {
+                    boolean ok = nhaCungCapService.capNhatNhaCungCap((NhaCungCap) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "Cập nhật thành công" : "Cập nhật thất bại");
+                }
+                case NHACUNGCAP_TAO_MA -> {
+                    response.setSuccess(true);
+                    response.setData(nhaCungCapService.taoMaTuDong());
                 }
 
                 default -> {

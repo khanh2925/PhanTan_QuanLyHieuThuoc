@@ -6,7 +6,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -14,14 +13,13 @@ import javax.swing.table.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.TableRowSorter;
-import javax.swing.RowFilter;
 
 import presentation.component.button.PillButton;
 import presentation.component.input.PlaceholderSupport;
 import presentation.component.border.RoundedBorder;
-import dao.iml.KhachHangDaoImpl;
 import entity.KhachHang;
 import com.toedter.calendar.JDateChooser;
+import network.ClientService;
 
 @SuppressWarnings("serial")
 public class KhachHang_NV_GUI extends JPanel implements ActionListener, DocumentListener, KeyListener {
@@ -39,7 +37,7 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
     private DefaultTableModel modelKhachHang;
     private TableRowSorter<DefaultTableModel> sorter;
     private List<KhachHang> listKH = new ArrayList<>();
-    private KhachHangDaoImpl kh_dao;
+    private ClientService svc;
     private final Font FONT_TEXT = new Font("Segoe UI", Font.PLAIN, 16);
     private final Font FONT_BOLD = new Font("Segoe UI", Font.BOLD, 16);
     private final Color COLOR_PRIMARY = new Color(33, 150, 243);
@@ -47,7 +45,7 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
 
     public KhachHang_NV_GUI() {
         setPreferredSize(new Dimension(1537, 850));
-        kh_dao = new KhachHangDaoImpl();
+        svc = new ClientService();
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
         taoPhanHeader();
@@ -117,7 +115,11 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
         p.add(createLabel("Mã KH:", xStart, yStart));
         txtMaKH = createTextField(xStart + wLbl, yStart, wTxt);
         txtMaKH.setEditable(false);
-        PlaceholderSupport.addPlaceholder(txtMaKH, kh_dao.phatSinhMaKhachHangTiepTheo());
+        try {
+            PlaceholderSupport.addPlaceholder(txtMaKH, svc.taoMaKhachHang());
+        } catch (Exception ex) {
+            PlaceholderSupport.addPlaceholder(txtMaKH, "KH-001");
+        }
         p.add(txtMaKH);
         
         p.add(createLabel("Tên KH:", xStart, yStart + gap + hText));
@@ -265,7 +267,13 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
     }
 
     private void loadDataLenBang() {
-        listKH = kh_dao.layTatCaKhachHang();
+        try {
+            listKH = new java.util.ArrayList<>();
+            java.util.List<?> rs = svc.getAllKhachHangForGUI();
+            for (Object o : rs) if (o instanceof KhachHang kh) listKH.add(kh);
+        } catch (Exception ex) {
+            listKH = java.util.Collections.emptyList();
+        }
         modelKhachHang.setRowCount(0);
         int stt = 1;
         for (KhachHang kh : listKH) {
@@ -276,7 +284,7 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
                     kh.isGioiTinh() ? "Nam" : "Nữ",
                     kh.getSoDienThoai(),
                     kh.getNgaySinh() != null ? kh.getNgaySinh().format(dtf) : "",
-                    kh.getTrangThaiText()
+                    kh.isHoatDong() ? "Hoạt động" : "Ngưng"
             });
         }
     }
@@ -285,18 +293,24 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
     public void actionPerformed(ActionEvent e) {
         Object o = e.getSource();
         if (o.equals(btnThem)) {
-            // Implementation
+            themKhachHang();
         } else if (o.equals(btnSua)) {
-            // Implementation
+            suaKhachHang();
         } else if (o.equals(btnLamMoi)) {
             lamMoiForm();
             loadDataLenBang();
+        } else if (o.equals(btnTimKiem)) {
+            refreshFilters();
         }
     }
 
     private void lamMoiForm() {
         txtMaKH.setText("");
-        PlaceholderSupport.addPlaceholder(txtMaKH, kh_dao.phatSinhMaKhachHangTiepTheo());
+        try {
+            PlaceholderSupport.addPlaceholder(txtMaKH, svc.taoMaKhachHang());
+        } catch (Exception ex) {
+            PlaceholderSupport.addPlaceholder(txtMaKH, "KH-001");
+        }
         txtTenKH.setText("");
         PlaceholderSupport.addPlaceholder(txtTenKH, "Nhập tên khách hàng");
         txtSDT.setText("");
@@ -310,7 +324,83 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
     }
 
     private void refreshFilters() {
-        // Implementation
+        String kw = txtTimKiem.getText() == null ? "" : txtTimKiem.getText().trim().toLowerCase();
+        sorter.setRowFilter(new RowFilter<DefaultTableModel, Integer>() {
+            @Override
+            public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                if (kw.isEmpty() || kw.contains("tìm kiếm")) return true;
+                String ten = String.valueOf(entry.getValue(2)).toLowerCase();
+                String sdt = String.valueOf(entry.getValue(4)).toLowerCase();
+                String ma = String.valueOf(entry.getValue(1)).toLowerCase();
+                return ten.contains(kw) || sdt.contains(kw) || ma.contains(kw);
+            }
+        });
+    }
+
+    private KhachHang buildKhachHangFromForm(String ma) {
+        try {
+            KhachHang kh = new KhachHang();
+            kh.setMaKhachHang(ma);
+            kh.setTenKhachHang(txtTenKH.getText().trim());
+            kh.setGioiTinh("Nam".equals(cboGioiTinh.getSelectedItem()));
+            kh.setSoDienThoai(txtSDT.getText().trim());
+            java.util.Date d = dateNgaySinh.getDate();
+            if (d != null) kh.setNgaySinh(new java.sql.Date(d.getTime()).toLocalDate());
+            kh.setHoatDong(!"Ngưng".equals(cboTrangThai.getSelectedItem()));
+            return kh;
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return null;
+        }
+    }
+
+    private boolean validData() {
+        String ten = txtTenKH.getText() == null ? "" : txtTenKH.getText().trim();
+        String sdt = txtSDT.getText() == null ? "" : txtSDT.getText().trim();
+        if (ten.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Tên khách hàng không được rỗng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (!sdt.matches("0\\d{9}")) {
+            JOptionPane.showMessageDialog(this, "Số điện thoại phải gồm 10 số và bắt đầu bằng 0!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
+    private void themKhachHang() {
+        if (!validData()) return;
+        String ma;
+        try { ma = svc.taoMaKhachHang(); } catch (Exception ex) { ma = "KH-001"; }
+        KhachHang kh = buildKhachHangFromForm(ma);
+        if (kh == null) return;
+        try {
+            if (svc.createKhachHang(kh)) {
+                JOptionPane.showMessageDialog(this, "Thêm khách hàng thành công!");
+                loadDataLenBang();
+                lamMoiForm();
+            } else JOptionPane.showMessageDialog(this, "Thêm thất bại!");
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void suaKhachHang() {
+        int row = tblKhachHang.getSelectedRow();
+        if (row < 0) { JOptionPane.showMessageDialog(this, "Vui lòng chọn khách hàng cần sửa!"); return; }
+        if (!validData()) return;
+        String ma = txtMaKH.getText().trim();
+        KhachHang kh = buildKhachHangFromForm(ma);
+        if (kh == null) return;
+        try {
+            if (svc.updateKhachHang(kh)) {
+                JOptionPane.showMessageDialog(this, "Cập nhật thành công!");
+                loadDataLenBang();
+                lamMoiForm();
+            } else JOptionPane.showMessageDialog(this, "Cập nhật thất bại!");
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     @Override

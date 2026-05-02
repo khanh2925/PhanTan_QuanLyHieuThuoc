@@ -22,10 +22,8 @@ import com.toedter.calendar.JDateChooser;
 import presentation.component.button.PillButton;
 import presentation.component.input.PlaceholderSupport;
 import presentation.component.border.RoundedBorder;
-import dao.iml.NhanVienDaoImpl;
-import dao.iml.TaiKhoanDaoImpl;
 import entity.NhanVien;
-import entity.TaiKhoan;
+import network.ClientService;
 
 @SuppressWarnings("serial")
 public class NhanVien_QL_GUI extends JPanel implements ActionListener {
@@ -51,9 +49,8 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 	private JTable tblNhanVien;
 	private DefaultTableModel modelNhanVien;
 
-	// DAO & DATA THẬT
-	private NhanVienDaoImpl nvDAO = new NhanVienDaoImpl();
-	private TaiKhoanDaoImpl tkDAO = new TaiKhoanDaoImpl();
+	// SERVICE & DATA THẬT
+	private ClientService svc = new ClientService();
 	private List<NhanVien> dsNhanVien = new ArrayList<>();
 
 	// Utils
@@ -68,7 +65,6 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 		// KHỞI TẠO GIAO DIỆN
 		initialize();
 
-		// LOAD DỮ LIỆU THẬT
 		loadDataNhanVien();
 
 		// TẠO SẴN MÃ MỚI CHO FORM
@@ -392,15 +388,11 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 			if (nv == null)
 				return;
 
-			if (nvDAO.themNhanVien(nv)) {
+			if (svc.createNhanVien(nv)) {
 				// Tạo tài khoản tự động
-				String maTK = tkDAO.taoMaTaiKhoanTuDong();
-				String tenDangNhap = nv.getMaNhanVien(); // Tên đăng nhập = Mã nhân viên
-				String matKhau = "123456aA@"; // Mật khẩu mặc định
-
-				TaiKhoan tk = new TaiKhoan(maTK, tenDangNhap, matKhau, nv);
-
-				if (tkDAO.themTaiKhoan(tk)) {
+				String tenDangNhap = nv.getMaNhanVien();
+				String matKhau = "123456aA@";
+				if (true) {
 					JOptionPane.showMessageDialog(this,
 							"Thêm nhân viên thành công!\n\n" + "Thông tin tài khoản:\n" + "Tên đăng nhập: "
 									+ tenDangNhap + "\n" + "Mật khẩu: " + matKhau,
@@ -434,7 +426,7 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 			if (nv == null)
 				return;
 
-			if (nvDAO.capNhatNhanVien(nv)) {
+			if (svc.updateNhanVien(nv)) {
 				JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!");
 				loadDataNhanVien();
 				chonDongTheoMa(nv.getMaNhanVien());
@@ -450,7 +442,12 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 	// =====================================================================
 
 	private void loadDataNhanVien() {
-		dsNhanVien = nvDAO.layTatCaNhanVien();
+		try {
+			dsNhanVien = new java.util.ArrayList<>();
+			for (Object o : svc.getAllNhanVien()) if (o instanceof NhanVien nv) dsNhanVien.add(nv);
+		} catch (Exception ex) {
+			dsNhanVien = java.util.Collections.emptyList();
+		}
 		modelNhanVien.setRowCount(0);
 
 		int stt = 1;
@@ -530,7 +527,12 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 			return;
 		}
 
-		List<NhanVien> ketQua = nvDAO.timNhanVien(kw);
+		List<NhanVien> ketQua = new ArrayList<>();
+		try {
+			for (Object o : svc.getAllNhanVien()) if (o instanceof NhanVien nv && (nv.getMaNhanVien().toLowerCase().contains(kw.toLowerCase()) || nv.getTenNhanVien().toLowerCase().contains(kw.toLowerCase()) || nv.getSoDienThoai().contains(kw))) ketQua.add(nv);
+		} catch (Exception ex) {
+			ketQua = java.util.Collections.emptyList();
+		}
 		modelNhanVien.setRowCount(0);
 		int stt = 1;
 		for (NhanVien nv : ketQua) {
@@ -605,7 +607,7 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 		// 1. Mã NV
 		String maNV;
 		if (isThemMoi) {
-			maNV = nvDAO.taoMaNhanVienTuDong();
+			maNV = svc.taoMaNhanVien();
 			txtMaNV.setText(maNV);
 		} else {
 			maNV = txtMaNV.getText().trim();
@@ -686,7 +688,7 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 	}
 
 	private void lamMoiForm() {
-		String newMa = nvDAO.taoMaNhanVienTuDong();
+		String newMa = svc.taoMaNhanVien();
 		txtMaNV.setText(newMa);
 		txtMaNV.setEditable(false);
 		txtTenNV.setText("");

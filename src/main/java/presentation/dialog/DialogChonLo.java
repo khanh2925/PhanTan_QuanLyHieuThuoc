@@ -1,7 +1,6 @@
 package presentation.dialog;
 
-import dao.iml.LoSanPhamDaoImpl;
-import dao.iml.SanPhamDaoImpl;
+import network.ClientService;
 import entity.LoSanPham;
 import entity.SanPham;
 
@@ -34,8 +33,7 @@ public class DialogChonLo extends JDialog {
     private ArrayList<LoSanPham> danhSachDaChon = new ArrayList<>(); // Lưu danh sách user chọn
     private boolean selectedAll = false; // Flag cho chọn tất cả
 
-    private final LoSanPhamDaoImpl loDAO = new LoSanPhamDaoImpl();
-    private final SanPhamDaoImpl spDAO = new SanPhamDaoImpl();
+    private final ClientService svc = new ClientService();
 
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
@@ -133,11 +131,15 @@ public class DialogChonLo extends JDialog {
             case "MASP" -> {
                 // Chỉ tìm theo mã SP này
                 if (keyword != null && !keyword.isEmpty()) {
-                    dsLoHSD = new ArrayList<>(loDAO.layDanhSachLoTheoMaSanPham(keyword)); // Tận dụng biến dsLoHSD làm
-                                                                                           // cache tạm hoặc
-                    // dùng thẳng
-                    for (LoSanPham lo : dsLoHSD) {
-                        ketQua.add(taiDayDuSanPham(lo));
+                    try {
+                        dsLoHSD = new ArrayList<>();
+                        java.util.List<?> lots = svc.getLotsByProduct(keyword);
+                        for (Object o : lots) if (o instanceof LoSanPham) dsLoHSD.add((LoSanPham) o);
+                        for (LoSanPham lo : dsLoHSD) {
+                            ketQua.add(taiDayDuSanPham(lo));
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
                 }
             }
@@ -145,13 +147,16 @@ public class DialogChonLo extends JDialog {
             case "TENSP" -> {
                 // Tìm các SP có tên chứa keyword
                 if (keyword != null && !keyword.isEmpty()) {
-                    ArrayList<SanPham> dsSP = spDAO.timKiemSanPham(keyword);
-                    for (SanPham sp : dsSP) {
-                        // Load các lô của SP này
-                        java.util.List<LoSanPham> listLo = loDAO.layDanhSachLoTheoMaSanPham(sp.getMaSanPham());
-                        for (LoSanPham lo : listLo) {
-                            ketQua.add(taiDayDuSanPham(lo));
+                    try {
+                        java.util.List<?> dsSP = svc.searchProducts(keyword);
+                        for (Object o : dsSP) {
+                            if (!(o instanceof SanPham)) continue;
+                            SanPham sp = (SanPham) o;
+                            java.util.List<?> listLo = svc.getLotsByProduct(sp.getMaSanPham());
+                            for (Object loObj : listLo) if (loObj instanceof LoSanPham) ketQua.add(taiDayDuSanPham((LoSanPham) loObj));
                         }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
                 }
             }
@@ -159,9 +164,17 @@ public class DialogChonLo extends JDialog {
             case "HSD" -> {
                 // Load tất cả lô đã hết hạn (Vẫn phải load list này nhưng filter từ DAO được
                 // thì tốt, hiện tại DAO có layDanhSachLoSPDaHetHan)
-                dsLoHSD = new ArrayList<>(loDAO.layDanhSachLoSPDaHetHan());
-                for (LoSanPham lo : dsLoHSD) {
-                    ketQua.add(taiDayDuSanPham(lo));
+                try {
+                    dsLoHSD = new ArrayList<>();
+                    java.util.List<?> lots = svc.getAllLots();
+                    for (Object o : lots) if (o instanceof LoSanPham) dsLoHSD.add((LoSanPham) o);
+                    for (LoSanPham lo : dsLoHSD) {
+                        if (lo.getHanSuDung() != null && lo.getHanSuDung().isBefore(java.time.LocalDate.now())) {
+                            ketQua.add(taiDayDuSanPham(lo));
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
                 }
             }
 
@@ -184,7 +197,14 @@ public class DialogChonLo extends JDialog {
         // Nếu mode HSD, lọc trong danh sách lô đã hết hạn
         if ("HSD".equals(loaiTim) || dsLoHSD != null) {
             if (dsLoHSD == null)
-                dsLoHSD = new ArrayList<>(loDAO.layDanhSachLoSPDaHetHan());
+                    try {
+                        dsLoHSD = new ArrayList<>();
+                        java.util.List<?> lots = svc.getAllLots();
+                        for (Object o : lots) if (o instanceof LoSanPham) dsLoHSD.add((LoSanPham) o);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        dsLoHSD = new ArrayList<>();
+                    }
 
             if (text.isEmpty()) {
                 // Nếu không nhập gì, hiển thị tất cả lô hết hạn
@@ -219,7 +239,13 @@ public class DialogChonLo extends JDialog {
 
         // 1. Nhập MÃ LÔ
         if (text.matches("(?i)^LO-\\d{6}$")) {
-            LoSanPham lo = loDAO.timLoTheoMa(text.toUpperCase());
+            LoSanPham lo = null;
+            try {
+                Object o = svc.getLotByCode(text.toUpperCase());
+                if (o instanceof LoSanPham) lo = (LoSanPham) o;
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
             if (lo != null)
                 ketQua.add(taiDayDuSanPham(lo));
             fill(ketQua);
@@ -228,14 +254,16 @@ public class DialogChonLo extends JDialog {
 
         // 2. Tìm theo tên / mã SP
         // Tìm SP trước
-        ArrayList<SanPham> dsSP = spDAO.timKiemSanPham(text);
-        if (!dsSP.isEmpty()) {
-            for (SanPham sp : dsSP) {
-                java.util.List<LoSanPham> list = loDAO.layDanhSachLoTheoMaSanPham(sp.getMaSanPham());
-                for (LoSanPham lo : list) {
-                    ketQua.add(taiDayDuSanPham(lo));
-                }
+        try {
+            java.util.List<?> dsSP = svc.searchProducts(text);
+            for (Object o : dsSP) {
+                if (!(o instanceof SanPham)) continue;
+                SanPham sp = (SanPham) o;
+                java.util.List<?> list = svc.getLotsByProduct(sp.getMaSanPham());
+                for (Object loObj : list) if (loObj instanceof LoSanPham) ketQua.add(taiDayDuSanPham((LoSanPham) loObj));
             }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
 
         fill(ketQua);
@@ -320,10 +348,14 @@ public class DialogChonLo extends JDialog {
     // =====================================================
 
     private LoSanPham taiDayDuSanPham(LoSanPham lo) {
-        // DAO trả về SanPham chỉ có mã → kéo đầy đủ theo DAO
+        // If lot contains only product reference, fetch full product via service
         if (lo.getSanPham() != null) {
-            SanPham sp = spDAO.laySanPhamTheoMa(lo.getSanPham().getMaSanPham());
-            lo.setSanPham(sp);
+            try {
+                Object p = svc.getProductByCode(lo.getSanPham().getMaSanPham());
+                if (p instanceof SanPham) lo.setSanPham((SanPham) p);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         }
         return lo;
     }

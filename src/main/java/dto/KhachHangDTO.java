@@ -1,8 +1,6 @@
 package dto;
 
-
 import java.io.Serializable;
-import entity.KhachHang;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -19,17 +17,6 @@ public class KhachHangDTO implements Serializable {
     private double tongChiTieu;
 
     public KhachHangDTO() {}
-
-    public static KhachHangDTO fromEntity(KhachHang kh) {
-        KhachHangDTO dto = new KhachHangDTO();
-        dto.maKhachHang = kh.getMaKhachHang();
-        dto.tenKhachHang = kh.getTenKhachHang();
-        dto.soDienThoai = kh.getSoDienThoai();
-        dto.gioiTinh = kh.isGioiTinh() ? "Nam" : "Nữ";
-        dto.ngaySinh = kh.getNgaySinh() != null ? 
-            kh.getNgaySinh().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "";
-        return dto;
-    }
 
     // Getters & Setters
     public String getMaKhachHang() { return maKhachHang; }

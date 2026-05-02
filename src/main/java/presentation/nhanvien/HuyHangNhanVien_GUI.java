@@ -9,10 +9,7 @@ import javax.swing.table.DefaultTableModel;
 import presentation.component.input.*;
 import presentation.component.label.*;
 import presentation.component.button.*;
-import dao.iml.LoSanPhamDaoImpl;
-import dao.iml.PhieuHuyDaoImpl;
-import dao.iml.QuyCachDongGoiDaoImpl;
-import dao.iml.SanPhamDaoImpl;
+import network.ClientService;
 
 import entity.ChiTietPhieuHuy;
 import entity.ItemHuyHang;
@@ -64,11 +61,8 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 	private DefaultTableModel modelHuy;
 	private double tongTienHuy = 0;
 
-	// ====== DAO ======
-	private final LoSanPhamDaoImpl loDAO = new LoSanPhamDaoImpl();
-	private final PhieuHuyDaoImpl phieuHuyDAO = new PhieuHuyDaoImpl();
-	private final QuyCachDongGoiDaoImpl quyCachDAO = new QuyCachDongGoiDaoImpl();
-	private final SanPhamDaoImpl spDAO = new SanPhamDaoImpl();
+	// ====== Service ======
+	private final ClientService svc = new ClientService();
 
 	// ====== NGÀY ======
 	@SuppressWarnings("unused")
@@ -286,7 +280,13 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 
 		if (input.matches("(?i)^LO-\\d{6}$")) {
 			String maLoChuan = input.toUpperCase();
-			LoSanPham lo = loDAO.timLoTheoMa(maLoChuan);
+			LoSanPham lo = null;
+			try {
+				Object o = svc.getLotByCode(maLoChuan);
+				if (o instanceof LoSanPham) lo = (LoSanPham) o;
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
 			if (lo == null) {
 				JOptionPane.showMessageDialog(this, "Không tìm thấy lô " + maLoChuan, "Không tồn tại",
 						JOptionPane.WARNING_MESSAGE);
@@ -302,10 +302,26 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 
 			double giaNhap = sp.getGiaNhap();
 			if (giaNhap <= 0) {
-				SanPham spFull = spDAO.laySanPhamTheoMa(sp.getMaSanPham());
-				if (spFull != null) {
-					lo.setSanPham(spFull);
-					giaNhap = spFull.getGiaNhap();
+				try {
+					Object o = svc.getProductByCode(sp.getMaSanPham());
+					if (o instanceof SanPham) {
+						SanPham spFull = (SanPham) o;
+						lo.setSanPham(spFull);
+						giaNhap = spFull.getGiaNhap();
+					}
+				} catch (Exception ex) {
+					// ignore and fallback
+				}
+				if (giaNhap <= 0) {
+					try {
+						Object remoteSp = svc.getProductByCode(sp.getMaSanPham());
+						if (remoteSp instanceof SanPham spFull) {
+							lo.setSanPham(spFull);
+							giaNhap = spFull.getGiaNhap();
+						}
+					} catch (Exception ex) {
+						// ignore
+					}
 				}
 			}
 
@@ -314,7 +330,13 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 			return;
 		}
 
-		SanPham sp = spDAO.laySanPhamTheoMa(input);
+		SanPham sp = null;
+		try {
+			Object o = svc.getProductByCode(input);
+			if (o instanceof SanPham) sp = (SanPham) o;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 		if (sp != null) {
 			MoDialogChonLo(input, "MASP");
 			txtTimLo.setText("");
@@ -376,7 +398,20 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 		ItemHuyHang it = new ItemHuyHang(lo.getMaLo(), lo.getSanPham().getTenSanPham(), slTonGoc, giaNhap,
 				lo.getSanPham().getHinhAnh());
 
-		QuyCachDongGoi qcGoc = quyCachDAO.timQuyCachGocTheoSanPham(lo.getSanPham().getMaSanPham());
+		QuyCachDongGoi qcGoc = null;
+		try {
+			java.util.List<?> qcs = svc.getPackagingRulesByProduct(lo.getSanPham().getMaSanPham());
+			if (qcs != null) {
+				for (Object o : qcs) {
+					if (o instanceof QuyCachDongGoi qc && qc.isDonViGoc()) {
+						qcGoc = qc;
+						break;
+					}
+				}
+			}
+		} catch (Exception ex) {
+			qcGoc = null;
+		}
 		if (qcGoc != null) {
 			it.setQuyCachGoc(qcGoc);
 			it.setQuyCachHienTai(qcGoc);
@@ -404,7 +439,20 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 
 		it.setSoLuongHuy(slTonGoc);
 
-		QuyCachDongGoi qcGoc = quyCachDAO.timQuyCachGocTheoSanPham(lo.getSanPham().getMaSanPham());
+		QuyCachDongGoi qcGoc = null;
+		try {
+			java.util.List<?> qcs = svc.getPackagingRulesByProduct(lo.getSanPham().getMaSanPham());
+			if (qcs != null) {
+				for (Object o : qcs) {
+					if (o instanceof QuyCachDongGoi qc && qc.isDonViGoc()) {
+						qcGoc = qc;
+						break;
+					}
+				}
+			}
+		} catch (Exception ex) {
+			qcGoc = null;
+		}
 		if (qcGoc != null) {
 			it.setQuyCachGoc(qcGoc);
 			it.setQuyCachHienTai(qcGoc);
@@ -572,7 +620,15 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 				return;
 			}
 
-			LoSanPham lo = loDAO.timLoTheoMa(it.getMaLo());
+			LoSanPham lo = null;
+			try {
+				Object remoteLo = svc.getLotByCode(it.getMaLo());
+				if (remoteLo instanceof LoSanPham) {
+					lo = (LoSanPham) remoteLo;
+				}
+			} catch (Exception ex) {
+				lo = null;
+			}
 			if (lo == null) {
 				JOptionPane.showMessageDialog(this, "Không tìm thấy lô trong CSDL: " + it.getMaLo(), "Lỗi dữ liệu",
 						JOptionPane.ERROR_MESSAGE);
@@ -607,7 +663,17 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 			return;
 
 		PhieuHuy ph = new PhieuHuy();
-		ph.setMaPhieuHuy(phieuHuyDAO.taoMaPhieuHuy());
+		String maPhieu = null;
+		try {
+			maPhieu = svc.taoMaPhieuHuy();
+		} catch (Exception ex) {
+			maPhieu = null;
+		}
+		if (maPhieu == null || maPhieu.isBlank()) {
+			JOptionPane.showMessageDialog(this, "Không thể tạo mã phiếu huỷ.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		ph.setMaPhieuHuy(maPhieu);
 		ph.setNgayLapPhieu(LocalDate.now());
 		ph.setNhanVien(nv);
 		ph.setTrangThai(false);
@@ -617,7 +683,12 @@ public class HuyHangNhanVien_GUI extends JPanel implements ActionListener {
 		}
 		ph.setChiTietPhieuHuyList(dsCT);
 
-		boolean ok = phieuHuyDAO.themPhieuHuy(ph);
+		boolean ok = false;
+		try {
+			ok = svc.createPhieuHuy(ph);
+		} catch (Exception ex) {
+			ok = false;
+		}
 
 		if (!ok) {
 			JOptionPane.showMessageDialog(this, "❌ Lưu phiếu huỷ thất bại. Vui lòng thử lại!", "Lỗi",

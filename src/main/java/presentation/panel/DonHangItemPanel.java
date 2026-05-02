@@ -14,6 +14,7 @@ import javax.swing.border.*;
 import presentation.component.input.TaoJtextNhanh;
 import dao.iml.LoSanPhamDaoImpl;
 import dao.iml.QuyCachDongGoiDaoImpl;
+import network.ClientService;
 import entity.ItemDonHang;
 import entity.KhuyenMai;
 import entity.LoSanPham;
@@ -43,6 +44,7 @@ public class DonHangItemPanel extends JPanel {
     private LoSanPhamDaoImpl loSanPhamDao;
     @SuppressWarnings("unused")
 	private QuyCachDongGoiDaoImpl quyCachDongGoiDao;
+    private ClientService svc;
 
     // ===== UI =====
     private JLabel lblSTT;
@@ -91,6 +93,7 @@ public class DonHangItemPanel extends JPanel {
         this.dsItem = dsItem;
         this.loSanPhamDao = loSanPhamDao;
         this.quyCachDongGoiDao = quyCachDongGoiDao;
+        this.svc = new ClientService();
 
         khoiTaoGiaoDien();
         ganSuKien();
@@ -621,8 +624,26 @@ public class DonHangItemPanel extends JPanel {
         LoSanPham loHienTai = item.getLoSanPham();
         SanPham sp = item.getSanPham();
 
-        LoSanPham loKe = loSanPhamDao.timLoKeTiepTheoSanPham(
-                sp.getMaSanPham(), loHienTai.getHanSuDung());
+        LoSanPham loKe = null;
+        try {
+            java.util.List<?> lots = svc.getLotsByProduct(sp.getMaSanPham());
+            for (Object o : lots) {
+                if (!(o instanceof LoSanPham)) continue;
+                LoSanPham l = (LoSanPham) o;
+                try {
+                    if (l.getHanSuDung() != null && loHienTai.getHanSuDung() != null
+                            && l.getHanSuDung().isAfter(loHienTai.getHanSuDung())
+                            && l.getSoLuongTon() > 0) {
+                        if (loKe == null || l.getHanSuDung().isBefore(loKe.getHanSuDung())) {
+                            loKe = l;
+                        }
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
         if (loKe == null) return false;
 
         QuyCachDongGoi qcHienTai = item.getQuyCachHienTai();

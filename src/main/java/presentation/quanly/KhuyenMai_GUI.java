@@ -19,64 +19,47 @@ import com.toedter.calendar.JDateChooser;
 import presentation.component.button.PillButton;
 import presentation.component.input.PlaceholderSupport;
 import presentation.component.border.RoundedBorder;
-import dao.iml.ChiTietKhuyenMaiSanPhamDaoImpl;
-import dao.iml.KhuyenMaiDaoImpl;
-import dao.iml.SanPhamDaoImpl;
-import dao.iml.QuyCachDongGoiDaoImpl;
 import entity.ChiTietKhuyenMaiSanPham;
 import entity.KhuyenMai;
-import entity.QuyCachDongGoi;
-import entity.SanPham;
 import entity.HinhThucKM;
+import entity.SanPham;
+import network.ClientService;
 import presentation.dialog.DialogChonSanPhamApDung;
 
-/**
-  * GUI Quản lý khuyến mãi - Dùng Entity + DAO thật
-  */
 @SuppressWarnings("serial")
 public class KhuyenMai_GUI extends JPanel implements ActionListener {
 
 	private JPanel pnHeader, pnCenter;
 	private JSplitPane splitPane;
-
 	private JTextField txtMaKM, txtTenKM, txtGiaTri, txtDieuKien, txtSoLuong;
 	private JDateChooser dateNgayBD, dateNgayKT;
 	private JComboBox<String> cboLoaiKM, cboHinhThuc, cboTrangThai;
-
 	private PillButton btnThem, btnSua, btnLamMoi, btnTimKiem, btnChonSP, btnXoaSP;
 	private JTextField txtTimKiem;
-
 	private JTable tblKhuyenMai, tblSanPhamApDung;
 	private DefaultTableModel modelKhuyenMai, modelSanPhamApDung;
-
-	private KhuyenMaiDaoImpl kmDAO = new KhuyenMaiDaoImpl();
-	private ChiTietKhuyenMaiSanPhamDaoImpl ctkmDAO = new ChiTietKhuyenMaiSanPhamDaoImpl();
-	private SanPhamDaoImpl spDAO = new SanPhamDaoImpl();
-	private QuyCachDongGoiDaoImpl qcDAO = new QuyCachDongGoiDaoImpl();
-	private List<KhuyenMai> dsKhuyenMai = new ArrayList<>();
-
-	private DecimalFormat dfNumber = new DecimalFormat("#,###");
-	private DateTimeFormatter dfDate = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-	private Font FONT_TEXT = new Font("Segoe UI", Font.PLAIN, 16);
-	private Font FONT_BOLD = new Font("Segoe UI", Font.BOLD, 16);
+	private final List<KhuyenMai> dsKhuyenMai = new ArrayList<>();
+	private final ClientService svc = new ClientService();
+	private final DecimalFormat dfNumber = new DecimalFormat("#,###");
+	private final DateTimeFormatter dfDate = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+	private final Font FONT_TEXT = new Font("Segoe UI", Font.PLAIN, 16);
+	private final Font FONT_BOLD = new Font("Segoe UI", Font.BOLD, 16);
 
 	public KhuyenMai_GUI() {
 		setPreferredSize(new Dimension(1537, 850));
 		initialize();
 		setupKeyboardShortcuts();
 		addFocusOnShow();
-		loadDataKhuyenMai();
 		lamMoiForm();
+		loadDataKhuyenMai();
 		capNhatTrangThaiNut();
 	}
 
 	private void initialize() {
 		setLayout(new BorderLayout());
 		setBackground(Color.WHITE);
-
 		taoPhanHeader();
 		add(pnHeader, BorderLayout.NORTH);
-
 		taoPhanCenter();
 		add(pnCenter, BorderLayout.CENTER);
 	}
@@ -85,21 +68,16 @@ public class KhuyenMai_GUI extends JPanel implements ActionListener {
 		pnHeader = new JPanel(null);
 		pnHeader.setPreferredSize(new Dimension(1073, 94));
 		pnHeader.setBackground(new Color(0xE3F2F5));
-
 		txtTimKiem = new JTextField();
 		PlaceholderSupport.addPlaceholder(txtTimKiem, "Tìm KM theo mã, tên chương trình (F1 / Ctrl+F)");
 		txtTimKiem.setFont(new Font("Segoe UI", Font.PLAIN, 22));
 		txtTimKiem.setBounds(25, 17, 500, 60);
 		txtTimKiem.setBorder(new RoundedBorder(20));
-		txtTimKiem.setToolTipText("<html><b>Phím tắt:</b> F1 hoặc Ctrl+F<br>Nhấn Enter để tìm kiếm</html>");
-		txtTimKiem.addActionListener(e -> xuLyTimKiem());
 		pnHeader.add(txtTimKiem);
-
-		btnTimKiem = new PillButton("<html>" + "<center>" + "TÌM KIẾM<br>" + "<span style='font-size:10px; color:#888888;'>(Enter)</span>" + "</center>" + "</html>");
+		btnTimKiem = new PillButton("TÌM KIẾM");
 		btnTimKiem.setBounds(540, 22, 130, 50);
-		btnTimKiem.setFont(new Font("Segoe UI", Font.BOLD, 18));
-		btnTimKiem.setToolTipText("<html><b>Phím tắt:</b> Enter (khi ở ô tìm kiếm)<br>Tìm kiếm theo mã, tên khuyến mãi</html>");
-		btnTimKiem.addActionListener(e -> xuLyTimKiem());
+		btnTimKiem.setFont(FONT_BOLD);
+		btnTimKiem.addActionListener(this);
 		pnHeader.add(btnTimKiem);
 	}
 
@@ -107,341 +85,230 @@ public class KhuyenMai_GUI extends JPanel implements ActionListener {
 		pnCenter = new JPanel(new BorderLayout());
 		pnCenter.setBackground(Color.WHITE);
 		pnCenter.setBorder(new EmptyBorder(10, 10, 10, 10));
-
 		JPanel pnTopWrapper = new JPanel(new BorderLayout());
 		pnTopWrapper.setBackground(Color.WHITE);
 		pnTopWrapper.setBorder(BorderFactory.createTitledBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY),
 				"Thông tin khuyến mãi", TitledBorder.LEFT, TitledBorder.TOP, FONT_BOLD, Color.DARK_GRAY));
-
 		JPanel pnForm = new JPanel(null);
 		pnForm.setBackground(Color.WHITE);
 		taoFormNhapLieu(pnForm);
 		pnTopWrapper.add(pnForm, BorderLayout.CENTER);
-
 		JPanel pnButton = new JPanel();
 		pnButton.setBackground(Color.WHITE);
 		taoPanelNutBam(pnButton);
 		pnTopWrapper.add(pnButton, BorderLayout.EAST);
-
 		JTabbedPane tabbedPane = new JTabbedPane();
 		tabbedPane.setFont(FONT_TEXT);
-
 		JPanel pnTab1 = new JPanel(new BorderLayout());
 		pnTab1.setBackground(Color.WHITE);
 		taoBangDanhSach(pnTab1);
 		tabbedPane.addTab("Danh sách khuyến mãi", pnTab1);
-
 		JPanel pnTab2 = new JPanel(new BorderLayout());
 		pnTab2.setBackground(Color.WHITE);
 		taoBangSanPhamApDung(pnTab2);
 		tabbedPane.addTab("Sản phẩm áp dụng", pnTab2);
-
 		splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, pnTopWrapper, tabbedPane);
 		splitPane.setDividerLocation(380);
-		splitPane.setResizeWeight(0.0);
-
 		pnCenter.add(splitPane, BorderLayout.CENTER);
 	}
 
 	private void taoFormNhapLieu(JPanel p) {
-		int xStart = 50, yStart = 30;
-		int hText = 35, wLbl = 120, wTxt = 320, gap = 25;
+		int xStart = 50, yStart = 30, hText = 35, wLbl = 120, wTxt = 320, gap = 25;
 		int xCol2 = xStart + wLbl + wTxt + 120;
-
 		p.add(createLabel("Mã KM:", xStart, yStart));
-		txtMaKM = createTextField(xStart + wLbl, yStart, wTxt);
-		txtMaKM.setEditable(false);
-		p.add(txtMaKM);
-
+		txtMaKM = createTextField(xStart + wLbl, yStart, wTxt); txtMaKM.setEditable(false); p.add(txtMaKM);
 		p.add(createLabel("Tên KM:", xCol2, yStart));
-		txtTenKM = createTextField(xCol2 + wLbl, yStart, wTxt);
-		PlaceholderSupport.addPlaceholder(txtTenKM, "Nhập tên khuyến mãi");
-		p.add(txtTenKM);
-
+		txtTenKM = createTextField(xCol2 + wLbl, yStart, wTxt); PlaceholderSupport.addPlaceholder(txtTenKM, "Nhập tên khuyến mãi"); p.add(txtTenKM);
 		yStart += hText + gap;
 		p.add(createLabel("Ngày BĐ:", xStart, yStart));
-		dateNgayBD = new JDateChooser();
-		dateNgayBD.setDateFormatString("dd/MM/yyyy");
-		dateNgayBD.setFont(FONT_TEXT);
-		dateNgayBD.setBounds(xStart + wLbl, yStart, wTxt, hText);
-		dateNgayBD.setDate(new Date());
-		p.add(dateNgayBD);
-
+		dateNgayBD = new JDateChooser(); dateNgayBD.setDateFormatString("dd/MM/yyyy"); dateNgayBD.setBounds(xStart + wLbl, yStart, wTxt, hText); dateNgayBD.setDate(new Date()); p.add(dateNgayBD);
 		p.add(createLabel("Ngày KT:", xCol2, yStart));
-		dateNgayKT = new JDateChooser();
-		dateNgayKT.setDateFormatString("dd/MM/yyyy");
-		dateNgayKT.setFont(FONT_TEXT);
-		dateNgayKT.setBounds(xCol2 + wLbl, yStart, wTxt, hText);
-		dateNgayKT.setDate(new Date());
-		p.add(dateNgayKT);
-
+		dateNgayKT = new JDateChooser(); dateNgayKT.setDateFormatString("dd/MM/yyyy"); dateNgayKT.setBounds(xCol2 + wLbl, yStart, wTxt, hText); dateNgayKT.setDate(new Date()); p.add(dateNgayKT);
 		yStart += hText + gap;
 		p.add(createLabel("Loại KM:", xStart, yStart));
-		cboLoaiKM = new JComboBox<>(new String[] { "Theo hóa đơn", "Theo sản phẩm" });
-		cboLoaiKM.setBounds(xStart + wLbl, yStart, wTxt, hText);
-		cboLoaiKM.setFont(FONT_TEXT);
-		p.add(cboLoaiKM);
-
+		cboLoaiKM = new JComboBox<>(new String[]{"Theo hóa đơn", "Theo sản phẩm"}); cboLoaiKM.setBounds(xStart + wLbl, yStart, wTxt, hText); p.add(cboLoaiKM);
 		p.add(createLabel("Hình thức:", xCol2, yStart));
-		cboHinhThuc = new JComboBox<>(new String[] { HinhThucKM.GIAM_GIA_PHAN_TRAM.getMoTa(), HinhThucKM.GIAM_GIA_TIEN.getMoTa() });
-		cboHinhThuc.setBounds(xCol2 + wLbl, yStart, wTxt, hText);
-		cboHinhThuc.setFont(FONT_TEXT);
-		p.add(cboHinhThuc);
-
+		cboHinhThuc = new JComboBox<>(new String[]{HinhThucKM.GIAM_GIA_PHAN_TRAM.getMoTa(), HinhThucKM.GIAM_GIA_TIEN.getMoTa()}); cboHinhThuc.setBounds(xCol2 + wLbl, yStart, wTxt, hText); p.add(cboHinhThuc);
 		yStart += hText + gap;
-		p.add(createLabel("Giá trị:", xStart, yStart));
-		txtGiaTri = createTextField(xStart + wLbl, yStart, wTxt);
-		PlaceholderSupport.addPlaceholder(txtGiaTri, "Nhập giá trị");
-		p.add(txtGiaTri);
-
-		p.add(createLabel("Điều kiện:", xCol2, yStart));
-		txtDieuKien = createTextField(xCol2 + wLbl, yStart, wTxt);
-		PlaceholderSupport.addPlaceholder(txtDieuKien, "Nhập điều kiện");
-		p.add(txtDieuKien);
-
+		p.add(createLabel("Giá trị:", xStart, yStart)); txtGiaTri = createTextField(xStart + wLbl, yStart, wTxt); PlaceholderSupport.addPlaceholder(txtGiaTri, "Nhập giá trị"); p.add(txtGiaTri);
+		p.add(createLabel("Điều kiện:", xCol2, yStart)); txtDieuKien = createTextField(xCol2 + wLbl, yStart, wTxt); PlaceholderSupport.addPlaceholder(txtDieuKien, "Nhập điều kiện"); p.add(txtDieuKien);
 		yStart += hText + gap;
-		p.add(createLabel("Số lượng:", xStart, yStart));
-		txtSoLuong = createTextField(xStart + wLbl, yStart, wTxt);
-		PlaceholderSupport.addPlaceholder(txtSoLuong, "Nhập số lượng");
-		p.add(txtSoLuong);
-
-		p.add(createLabel("Trạng thái:", xCol2, yStart));
-		cboTrangThai = new JComboBox<>(new String[] { "Đang hoạt động", "Ngưng hoạt động" });
-		cboTrangThai.setBounds(xCol2 + wLbl, yStart, wTxt, hText);
-		cboTrangThai.setFont(FONT_TEXT);
-		p.add(cboTrangThai);
+		p.add(createLabel("Số lượng:", xStart, yStart)); txtSoLuong = createTextField(xStart + wLbl, yStart, wTxt); PlaceholderSupport.addPlaceholder(txtSoLuong, "Nhập số lượng"); p.add(txtSoLuong);
+		p.add(createLabel("Trạng thái:", xCol2, yStart)); cboTrangThai = new JComboBox<>(new String[]{"Đang hoạt động", "Ngưng hoạt động"}); cboTrangThai.setBounds(xCol2 + wLbl, yStart, wTxt, hText); p.add(cboTrangThai);
 	}
 
 	private void taoPanelNutBam(JPanel p) {
-		p.setPreferredSize(new Dimension(200, 0));
-		p.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY));
-		p.setLayout(new GridBagLayout());
-		GridBagConstraints gbc = new GridBagConstraints();
-		gbc.gridx = 0;
-		gbc.insets = new Insets(10, 0, 10, 0);
-		gbc.fill = GridBagConstraints.HORIZONTAL;
-
-		int btnW = 140;
-		int btnH = 45;
-
-		btnThem = new PillButton("<html>" + "<center>" + "TẠO KM<br>" + "<span style='font-size:10px; color:#888888;'>(Ctrl+N)</span>" + "</center>" + "</html>");
-		btnThem.setFont(FONT_BOLD);
-		btnThem.setPreferredSize(new Dimension(btnW, btnH));
-		btnThem.setToolTipText("<html><b>Phím tắt:</b> Ctrl+N<br>Tạo khuyến mãi mới</html>");
-		btnThem.addActionListener(this);
-		gbc.gridy = 0;
-		p.add(btnThem, gbc);
-
-		btnSua = new PillButton("<html>" + "<center>" + "CẬP NHẬT<br>" + "<span style='font-size:10px; color:#888888;'>(Ctrl+U)</span>" + "</center>" + "</html>");
-		btnSua.setFont(FONT_BOLD);
-		btnSua.setPreferredSize(new Dimension(btnW, btnH));
-		btnSua.setToolTipText("<html><b>Phím tắt:</b> Ctrl+U<br>Cập nhật khuyến mãi đang chọn</html>");
-		btnSua.addActionListener(this);
-		gbc.gridy = 1;
-		p.add(btnSua, gbc);
-
-		btnLamMoi = new PillButton("<html>" + "<center>" + "LÀM MỚI<br>" + "<span style='font-size:10px; color:#888888;'>(F5)</span>" + "</center>" + "</html>");
-		btnLamMoi.setFont(FONT_BOLD);
-		btnLamMoi.setPreferredSize(new Dimension(btnW, btnH));
-		btnLamMoi.setToolTipText("<html><b>Phím tắt:</b> F5<br>Làm mới form nhập liệu</html>");
-		btnLamMoi.addActionListener(this);
-		gbc.gridy = 2;
-		p.add(btnLamMoi, gbc);
+		p.setPreferredSize(new Dimension(200, 0)); p.setBorder(BorderFactory.createMatteBorder(0, 1, 0, 0, Color.LIGHT_GRAY)); p.setLayout(new GridBagLayout());
+		GridBagConstraints gbc = new GridBagConstraints(); gbc.gridx = 0; gbc.insets = new Insets(10, 0, 10, 0); gbc.fill = GridBagConstraints.HORIZONTAL;
+		btnThem = new PillButton("TẠO KM"); btnThem.setFont(FONT_BOLD); btnThem.addActionListener(this); gbc.gridy = 0; p.add(btnThem, gbc);
+		btnSua = new PillButton("CẬP NHẬT"); btnSua.setFont(FONT_BOLD); btnSua.addActionListener(this); btnSua.setEnabled(false); gbc.gridy = 1; p.add(btnSua, gbc);
+		btnLamMoi = new PillButton("LÀM MỚI"); btnLamMoi.setFont(FONT_BOLD); btnLamMoi.addActionListener(this); gbc.gridy = 2; p.add(btnLamMoi, gbc);
 	}
 
 	private void taoBangDanhSach(JPanel p) {
-		String[] cols = { "STT", "Mã KM", "Tên KM", "Hình thức", "Giá trị", "Bắt đầu", "Kết thúc", "Loại", "Trạng thái" };
-		modelKhuyenMai = new DefaultTableModel(cols, 0) {
-			@Override
-			public boolean isCellEditable(int r, int c) {
-				return false;
-			}
-		};
+		String[] cols = {"STT", "Mã KM", "Tên KM", "Hình thức", "Giá trị", "Bắt đầu", "Kết thúc", "Loại", "Trạng thái"};
+		modelKhuyenMai = new DefaultTableModel(cols, 0) { @Override public boolean isCellEditable(int r, int c) { return false; } };
 		tblKhuyenMai = setupTable(modelKhuyenMai);
-		tblKhuyenMai.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				doToForm(tblKhuyenMai.getSelectedRow());
-				capNhatTrangThaiNut();
-			}
-		});
+		tblKhuyenMai.addMouseListener(new MouseAdapter() { @Override public void mouseClicked(MouseEvent e) { doToForm(tblKhuyenMai.getSelectedRow()); capNhatTrangThaiNut(); } });
 		p.add(new JScrollPane(tblKhuyenMai), BorderLayout.CENTER);
 	}
 
 	private void taoBangSanPhamApDung(JPanel p) {
-		JPanel pnTool = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		pnTool.setBackground(Color.WHITE);
-
-		btnChonSP = new PillButton("<html>" + "<center>" + "CHỌN SP<br>" + "<span style='font-size:10px; color:#888888;'>(F7)</span>" + "</center>" + "</html>");
-		btnChonSP.setFont(FONT_BOLD);
-		btnChonSP.setPreferredSize(new Dimension(140, 45));
-		btnChonSP.setToolTipText("<html><b>Phím tắt:</b> F7<br>Mở danh sách chọn sản phẩm áp dụng</html>");
-		btnChonSP.addActionListener(this);
-
-		btnXoaSP = new PillButton("<html>" + "<center>" + "XÓA SP<br>" + "<span style='font-size:10px; color:#888888;'>(F8)</span>" + "</center>" + "</html>");
-		btnXoaSP.setFont(FONT_BOLD);
-		btnXoaSP.setPreferredSize(new Dimension(140, 45));
-		btnXoaSP.setToolTipText("<html><b>Phím tắt:</b> F8<br>Xóa sản phẩm đã chọn khỏi khuyến mãi</html>");
-		btnXoaSP.addActionListener(this);
-
-		pnTool.add(btnChonSP);
-		pnTool.add(btnXoaSP);
-		p.add(pnTool, BorderLayout.NORTH);
-
-		String[] cols = { "Mã SP", "Tên sản phẩm", "Đơn vị", "Giá gốc", "Giá KM" };
-		modelSanPhamApDung = new DefaultTableModel(cols, 0) {
-			@Override
-			public boolean isCellEditable(int r, int c) {
-				return false;
-			}
-		};
+		JPanel pnTool = new JPanel(new FlowLayout(FlowLayout.LEFT)); pnTool.setBackground(Color.WHITE);
+		btnChonSP = new PillButton("CHỌN SP"); btnChonSP.setFont(FONT_BOLD); btnChonSP.addActionListener(this);
+		btnXoaSP = new PillButton("XÓA SP"); btnXoaSP.setFont(FONT_BOLD); btnXoaSP.addActionListener(this);
+		pnTool.add(btnChonSP); pnTool.add(btnXoaSP); p.add(pnTool, BorderLayout.NORTH);
+		String[] cols = {"Mã SP", "Tên sản phẩm", "Đơn vị", "Giá gốc", "Giá KM"};
+		modelSanPhamApDung = new DefaultTableModel(cols, 0) { @Override public boolean isCellEditable(int r, int c) { return false; } };
 		tblSanPhamApDung = setupTable(modelSanPhamApDung);
-
 		p.add(new JScrollPane(tblSanPhamApDung), BorderLayout.CENTER);
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		Object o = e.getSource();
-
-		if (o.equals(btnThem)) {
-			// Implementation
-		} else if (o.equals(btnSua)) {
-			// Implementation
-		} else if (o.equals(btnLamMoi)) {
-			lamMoiForm();
-		} else if (o.equals(btnChonSP)) {
-			// Implementation
-		} else if (o.equals(btnXoaSP)) {
-			// Implementation
-		}
+		try {
+			if (o == btnThem) themKhuyenMai(); else if (o == btnSua) suaKhuyenMai(); else if (o == btnLamMoi) lamMoiForm(); else if (o == btnChonSP) chonSanPhamApDung(); else if (o == btnXoaSP) xoaSanPhamApDung(); else if (o == btnTimKiem) xuLyTimKiem();
+		} catch (Exception ex) { JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE); }
 	}
 
 	private void setupKeyboardShortcuts() {
 		InputMap inputMap = getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
 		ActionMap actionMap = getActionMap();
-
 		inputMap.put(KeyStroke.getKeyStroke("F1"), "focusTimKiem");
 		actionMap.put("focusTimKiem", new AbstractAction() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				txtTimKiem.requestFocus();
-				txtTimKiem.selectAll();
-			}
+			@Override public void actionPerformed(ActionEvent e) { txtTimKiem.requestFocus(); txtTimKiem.selectAll(); }
+		});
+		inputMap.put(KeyStroke.getKeyStroke("F5"), "lamMoi");
+		actionMap.put("lamMoi", new AbstractAction() {
+			@Override public void actionPerformed(ActionEvent e) { lamMoiForm(); loadDataKhuyenMai(); }
+		});
+		inputMap.put(KeyStroke.getKeyStroke("control N"), "themKM");
+		actionMap.put("themKM", new AbstractAction() {
+			@Override public void actionPerformed(ActionEvent e) { try { themKhuyenMai(); } catch (Exception ex) { JOptionPane.showMessageDialog(KhuyenMai_GUI.this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE); } }
+		});
+		inputMap.put(KeyStroke.getKeyStroke("control U"), "suaKM");
+		actionMap.put("suaKM", new AbstractAction() {
+			@Override public void actionPerformed(ActionEvent e) { try { suaKhuyenMai(); } catch (Exception ex) { JOptionPane.showMessageDialog(KhuyenMai_GUI.this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE); } }
+		});
+		inputMap.put(KeyStroke.getKeyStroke("F7"), "chonSP");
+		actionMap.put("chonSP", new AbstractAction() {
+			@Override public void actionPerformed(ActionEvent e) { chonSanPhamApDung(); }
+		});
+		inputMap.put(KeyStroke.getKeyStroke("F8"), "xoaSP");
+		actionMap.put("xoaSP", new AbstractAction() {
+			@Override public void actionPerformed(ActionEvent e) { xoaSanPhamApDung(); }
 		});
 	}
-
 	private void addFocusOnShow() {
 		addHierarchyListener(e -> {
 			if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
-				SwingUtilities.invokeLater(() -> {
-					txtTimKiem.requestFocusInWindow();
-					txtTimKiem.selectAll();
-				});
+				SwingUtilities.invokeLater(() -> { txtTimKiem.requestFocusInWindow(); txtTimKiem.selectAll(); });
 			}
 		});
 	}
 
 	private void loadDataKhuyenMai() {
-		dsKhuyenMai = kmDAO.layTatCaKhuyenMai();
-		modelKhuyenMai.setRowCount(0);
-		int stt = 1;
-		for (KhuyenMai km : dsKhuyenMai) {
-			modelKhuyenMai.addRow(new Object[] { stt++, km.getMaKM(), km.getTenKM(),
-					km.getHinhThuc() != null ? km.getHinhThuc().getMoTa() : "", dfNumber.format(km.getGiaTri()),
-					dfDate.format(km.getNgayBatDau()), dfDate.format(km.getNgayKetThuc()),
-					km.isKhuyenMaiHoaDon() ? "Theo hóa đơn" : "Theo sản phẩm", km.isDangHoatDong() ? "Đang hoạt động" : "Ngưng hoạt động" });
-		}
+		dsKhuyenMai.clear();
+		try {
+			for (Object o : svc.getAllKhuyenMai()) if (o instanceof KhuyenMai km) dsKhuyenMai.add(km);
+		} catch (Exception ignored) {}
+		modelKhuyenMai.setRowCount(0); int stt = 1;
+		for (KhuyenMai km : dsKhuyenMai) addKmRow(stt++, km);
 	}
 
-	private void xuLyTimKiem() {
-		String kw = txtTimKiem.getText().trim().toLowerCase();
-		modelKhuyenMai.setRowCount(0);
-		int stt = 1;
-		for (KhuyenMai km : dsKhuyenMai) {
-			if (kw.isEmpty() || km.getMaKM().toLowerCase().contains(kw) || km.getTenKM().toLowerCase().contains(kw)) {
-				modelKhuyenMai.addRow(new Object[] { stt++, km.getMaKM(), km.getTenKM(),
-						km.getHinhThuc() != null ? km.getHinhThuc().getMoTa() : "", dfNumber.format(km.getGiaTri()),
-						dfDate.format(km.getNgayBatDau()), dfDate.format(km.getNgayKetThuc()),
-						km.isKhuyenMaiHoaDon() ? "Theo hóa đơn" : "Theo sản phẩm", km.isDangHoatDong() ? "Đang hoạt động" : "Ngưng hoạt động" });
+	private void loadSanPhamApDung(String maKM) {
+		modelSanPhamApDung.setRowCount(0);
+		if (maKM == null || maKM.isBlank()) return;
+		try {
+			int stt = 1;
+			for (Object o : svc.getChiTietKhuyenMaiByMaKM(maKM)) {
+				if (!(o instanceof ChiTietKhuyenMaiSanPham ct)) continue;
+				SanPham sp = ct.getSanPham();
+				String ten = sp != null ? sp.getTenSanPham() : "";
+				String dv = sp != null ? String.valueOf(sp.getKeBanSanPham()) : "";
+				double giaGoc = sp != null ? sp.getGiaBan() : 0;
+				double giaKm = tinhGiaKhuyenMai(giaGoc);
+				modelSanPhamApDung.addRow(new Object[]{ stt++, sp != null ? sp.getMaSanPham() : "", ten, dv, dfNumber.format(giaGoc), dfNumber.format(giaKm) });
 			}
-		}
+		} catch (Exception ignored) {}
 	}
+
+	private void addKmRow(int stt, KhuyenMai km) {
+		modelKhuyenMai.addRow(new Object[]{stt, km.getMaKM(), km.getTenKM(), km.getHinhThuc() != null ? km.getHinhThuc().getMoTa() : "", dfNumber.format(km.getGiaTri()), km.getNgayBatDau() != null ? km.getNgayBatDau().format(dfDate) : "", km.getNgayKetThuc() != null ? km.getNgayKetThuc().format(dfDate) : "", km.isKhuyenMaiHoaDon() ? "Theo hóa đơn" : "Theo sản phẩm", km.isDangHoatDong() ? "Đang hoạt động" : "Ngưng hoạt động"});
+	}
+
+	private void xuLyTimKiem() { String kw = txtTimKiem.getText().trim().toLowerCase(); modelKhuyenMai.setRowCount(0); int stt = 1; for (KhuyenMai km : dsKhuyenMai) if (kw.isEmpty() || km.getMaKM().toLowerCase().contains(kw) || km.getTenKM().toLowerCase().contains(kw)) addKmRow(stt++, km); }
 
 	private void doToForm(int row) {
-		// Implementation
+		if (row < 0) return;
+		txtMaKM.setText(String.valueOf(modelKhuyenMai.getValueAt(row, 1)));
+		txtTenKM.setText(String.valueOf(modelKhuyenMai.getValueAt(row, 2)));
+		txtGiaTri.setText(String.valueOf(modelKhuyenMai.getValueAt(row, 4)).replace(",", ""));
+		String bd = String.valueOf(modelKhuyenMai.getValueAt(row, 5));
+		String kt = String.valueOf(modelKhuyenMai.getValueAt(row, 6));
+		dateNgayBD.setDate(parseDate(bd));
+		dateNgayKT.setDate(parseDate(kt));
+		cboLoaiKM.setSelectedIndex(String.valueOf(modelKhuyenMai.getValueAt(row, 7)).contains("hóa đơn") ? 0 : 1);
+		cboTrangThai.setSelectedIndex(String.valueOf(modelKhuyenMai.getValueAt(row, 8)).contains("Đang") ? 0 : 1);
+		loadSanPhamApDung(txtMaKM.getText().trim());
+		btnSua.setEnabled(true);
 	}
 
 	private void lamMoiForm() {
-		String newMa = kmDAO.taoMaKhuyenMai();
-		txtMaKM.setText(newMa);
-		txtMaKM.setEditable(false);
-
-		txtTenKM.setText("");
-		PlaceholderSupport.addPlaceholder(txtTenKM, "Nhập tên khuyến mãi");
-		txtGiaTri.setText("");
-		PlaceholderSupport.addPlaceholder(txtGiaTri, "Nhập giá trị");
-
-		txtDieuKien.setText("");
-		PlaceholderSupport.addPlaceholder(txtDieuKien, "Nhập điều kiện");
-
-		txtSoLuong.setText("");
-		PlaceholderSupport.addPlaceholder(txtSoLuong, "Nhập số lượng");
-
-		dateNgayBD.setDate(new Date());
-		dateNgayKT.setDate(new Date());
-
-		cboLoaiKM.setSelectedIndex(0);
-		cboHinhThuc.setSelectedIndex(0);
-		cboTrangThai.setSelectedIndex(0);
-		tblKhuyenMai.clearSelection();
-		modelSanPhamApDung.setRowCount(0);
-		loadDataKhuyenMai();
-		capNhatTrangThaiNut();
-		txtTimKiem.requestFocus();
+		try { txtMaKM.setText(svc.taoMaKhuyenMai()); } catch (Exception ex) { txtMaKM.setText("KM-001"); }
+		txtTenKM.setText(""); txtGiaTri.setText(""); txtDieuKien.setText(""); txtSoLuong.setText(""); dateNgayBD.setDate(new Date()); dateNgayKT.setDate(new Date()); cboLoaiKM.setSelectedIndex(0); cboHinhThuc.setSelectedIndex(0); cboTrangThai.setSelectedIndex(0); tblKhuyenMai.clearSelection(); modelSanPhamApDung.setRowCount(0); btnSua.setEnabled(false); btnThem.setEnabled(true);
 	}
 
-	private void capNhatTrangThaiNut() {
-		int row = tblKhuyenMai.getSelectedRow();
-		boolean coDongDuocChon = (row != -1);
-		btnThem.setEnabled(!coDongDuocChon);
-		btnSua.setEnabled(coDongDuocChon);
+	private void capNhatTrangThaiNut() { boolean chon = tblKhuyenMai.getSelectedRow() != -1; btnThem.setEnabled(!chon); btnSua.setEnabled(chon); }
+	private JLabel createLabel(String text, int x, int y) { JLabel lbl = new JLabel(text); lbl.setFont(FONT_TEXT); lbl.setBounds(x, y, 100, 35); return lbl; }
+	private JTextField createTextField(int x, int y, int w) { JTextField txt = new JTextField(); txt.setFont(FONT_TEXT); txt.setBounds(x, y, w, 35); return txt; }
+	private JTable setupTable(DefaultTableModel model) { JTable table = new JTable(model); table.setFont(FONT_TEXT); table.setRowHeight(35); table.setSelectionBackground(new Color(0xC8E6C9)); table.setSelectionForeground(Color.BLACK); table.getTableHeader().setFont(FONT_BOLD); table.getTableHeader().setBackground(new Color(33, 150, 243)); table.getTableHeader().setForeground(Color.WHITE); return table; }
+
+	private boolean validData() {
+		if (txtTenKM.getText().trim().isEmpty()) return false;
+		if (txtGiaTri.getText().trim().isEmpty()) return false;
+		return true;
+	}
+	private LocalDate dateFromChooser(JDateChooser chooser) { Date d = chooser.getDate(); return d == null ? LocalDate.now() : d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate(); }
+	private Date parseDate(String s) { try { return Date.from(LocalDate.parse(s, dfDate).atStartOfDay(ZoneId.systemDefault()).toInstant()); } catch (Exception ex) { return new Date(); } }
+	private double tinhGiaKhuyenMai(double giaGoc) {
+		try {
+			double giaTri = Double.parseDouble(txtGiaTri.getText().trim().replace(",", ""));
+			return cboHinhThuc.getSelectedIndex() == 0 ? Math.max(0, giaGoc - (giaGoc * giaTri / 100.0)) : Math.max(0, giaGoc - giaTri);
+		} catch (Exception ex) {
+			return giaGoc;
+		}
 	}
 
-	private JLabel createLabel(String text, int x, int y) {
-		JLabel lbl = new JLabel(text);
-		lbl.setFont(FONT_TEXT);
-		lbl.setBounds(x, y, 100, 35);
-		return lbl;
+	private KhuyenMai toEntityFromForm(String ma) {
+		KhuyenMai km = new KhuyenMai(); km.setMaKM(ma); km.setTenKM(txtTenKM.getText().trim()); km.setNgayBatDau(dateFromChooser(dateNgayBD)); km.setNgayKetThuc(dateFromChooser(dateNgayKT)); km.setKhuyenMaiHoaDon(cboLoaiKM.getSelectedIndex() == 0); km.setHinhThuc(cboHinhThuc.getSelectedIndex() == 0 ? HinhThucKM.GIAM_GIA_PHAN_TRAM : HinhThucKM.GIAM_GIA_TIEN); km.setGiaTri(Double.parseDouble(txtGiaTri.getText().trim().replace(",", ""))); km.setDieuKienApDungHoaDon(txtDieuKien.getText().trim().isEmpty() ? 0 : Double.parseDouble(txtDieuKien.getText().trim().replace(",", ""))); km.setSoLuongKhuyenMai(txtSoLuong.getText().trim().isEmpty() ? 0 : Integer.parseInt(txtSoLuong.getText().trim())); km.setTrangThai(cboTrangThai.getSelectedIndex() == 0); return km;
 	}
 
-	private JTextField createTextField(int x, int y, int w) {
-		JTextField txt = new JTextField();
-		txt.setFont(FONT_TEXT);
-		txt.setBounds(x, y, w, 35);
-		return txt;
+	private void themKhuyenMai() throws Exception { if (!validData()) return; String ma = svc.taoMaKhuyenMai(); KhuyenMai km = toEntityFromForm(ma); if (svc.createKhuyenMai(km)) { loadDataKhuyenMai(); lamMoiForm(); } }
+	private void suaKhuyenMai() throws Exception { int row = tblKhuyenMai.getSelectedRow(); if (row < 0) return; KhuyenMai km = toEntityFromForm(String.valueOf(modelKhuyenMai.getValueAt(row, 1))); if (svc.updateKhuyenMai(km)) { loadDataKhuyenMai(); lamMoiForm(); } }
+	private void chonSanPhamApDung() {
+		if (txtMaKM.getText().trim().isEmpty()) { JOptionPane.showMessageDialog(this, "Vui lòng chọn hoặc tạo khuyến mãi trước!"); return; }
+		DialogChonSanPhamApDung dialog = new DialogChonSanPhamApDung((JFrame) SwingUtilities.getWindowAncestor(this));
+		dialog.setLocationRelativeTo(this);
+		dialog.setVisible(true);
+		loadSanPhamApDung(txtMaKM.getText().trim());
+	}
+	private void xoaSanPhamApDung() {
+		int row = tblSanPhamApDung.getSelectedRow();
+		if (row < 0) { JOptionPane.showMessageDialog(this, "Chọn sản phẩm cần xóa khỏi khuyến mãi!"); return; }
+		String maKM = txtMaKM.getText().trim();
+		String maSP = String.valueOf(modelSanPhamApDung.getValueAt(row, 0));
+		try {
+			if (svc.deleteChiTietKhuyenMai(maKM, maSP)) {
+				modelSanPhamApDung.removeRow(row);
+			} else {
+				JOptionPane.showMessageDialog(this, "Xóa sản phẩm khỏi khuyến mãi thất bại!");
+			}
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
-	private JTable setupTable(DefaultTableModel model) {
-		JTable table = new JTable(model);
-		table.setFont(FONT_TEXT);
-		table.setRowHeight(35);
-		table.setSelectionBackground(new Color(0xC8E6C9));
-		table.setSelectionForeground(Color.BLACK);
-		table.getTableHeader().setFont(FONT_BOLD);
-		table.getTableHeader().setBackground(new Color(33, 150, 243));
-		table.getTableHeader().setForeground(Color.WHITE);
-		return table;
-	}
-
-	public static void main(String[] args) {
-		SwingUtilities.invokeLater(() -> {
-			JFrame frame = new JFrame("Quản Lý Khuyến Mãi");
-			frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-			frame.setSize(1500, 850);
-			frame.setLocationRelativeTo(null);
-			frame.setContentPane(new KhuyenMai_GUI());
-			frame.setVisible(true);
-		});
-	}
+	public static void main(String[] args) { SwingUtilities.invokeLater(() -> { JFrame frame = new JFrame("Quản Lý Khuyến Mãi"); frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); frame.setSize(1500, 850); frame.setLocationRelativeTo(null); frame.setContentPane(new KhuyenMai_GUI()); frame.setVisible(true); }); }
 }

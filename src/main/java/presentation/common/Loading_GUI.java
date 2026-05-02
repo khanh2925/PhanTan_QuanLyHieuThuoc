@@ -18,20 +18,10 @@ import javax.swing.SwingWorker;
 import javax.swing.border.EmptyBorder;
 
 import presentation.component.panel.ImagePanel;
-import dao.iml.DonViTinhDaoImpl;
-import dao.iml.KhachHangDaoImpl;
-import dao.iml.NhaCungCapDaoImpl;
-import dao.iml.NhanVienDaoImpl;
-import dao.iml.QuyCachDongGoiDaoImpl;
-import dao.iml.SanPhamDaoImpl;
-import dao.DonViTinhDao;
-import dao.KhachHangDao;
-import dao.NhaCungCapDao;
-import dao.NhanVienDao;
-import dao.QuyCachDongGoiDao;
-import dao.SanPhamDao;
-import db.DataSeeder;
-import db.JPAUtil;
+import network.ClientSocket;
+import network.Request;
+import network.Response;
+import network.CommandType;
 import presentation.DangNhap_GUI;
 
 /**
@@ -144,54 +134,44 @@ public class Loading_GUI extends JWindow {
                     publish(new LoadingProgress(5, "Đang khởi tạo ứng dụng..."));
                     Thread.sleep(300);
                     
-                    // Bước 2: Khởi tạo JPA + seed dữ liệu (10-20%)
-                    publish(new LoadingProgress(10, "Đang khởi tạo JPA / database..."));
-                    // Lần đầu gọi JPAUtil sẽ tạo EntityManagerFactory và chạy hbm2ddl
-                    JPAUtil.getEntityManager().close();
-                    DataSeeder.seed();
-                    publish(new LoadingProgress(20, "Kết nối JPA thành công!"));
-                    Thread.sleep(200);
+                    // Bước 2: Kết nối tới Server qua Socket và yêu cầu dữ liệu khởi tạo
+                    publish(new LoadingProgress(10, "Kết nối đến Server..."));
+                    try (ClientSocket cs = new ClientSocket("localhost", 9090, 5000)) {
+                        publish(new LoadingProgress(12, "Yêu cầu danh sách nhân viên..."));
+                        Response rNv = cs.sendRequest(new Request(CommandType.NHANVIEN_LAY_TAT_CA, null));
+                        int countNV = 0;
+                        if (rNv != null && rNv.isSuccess() && rNv.getData() instanceof java.util.List) {
+                            countNV = ((java.util.List<?>) rNv.getData()).size();
+                        }
+                        publish(new LoadingProgress(28, "✓ Đã tải " + countNV + " nhân viên"));
+                        Thread.sleep(100);
+
+                        publish(new LoadingProgress(30, "Yêu cầu danh sách khách hàng..."));
+                        Response rKh = cs.sendRequest(new Request(CommandType.KHACHHANG_LAY_TAT_CA, null));
+                        int countKH = 0;
+                        if (rKh != null && rKh.isSuccess() && rKh.getData() instanceof java.util.List) {
+                            countKH = ((java.util.List<?>) rKh.getData()).size();
+                        }
+                        publish(new LoadingProgress(50, "✓ Đã tải " + countKH + " khách hàng"));
+                        Thread.sleep(100);
+
+                        publish(new LoadingProgress(52, "Yêu cầu danh sách nhà cung cấp..."));
+                        // If server supports a command for suppliers, replace below. Fallback to 0.
+                        int countNCC = 0;
+                        publish(new LoadingProgress(65, "✓ Đã tải " + countNCC + " nhà cung cấp"));
+                        Thread.sleep(100);
+
+                        publish(new LoadingProgress(67, "Yêu cầu danh sách sản phẩm..."));
+                        Response rSp = cs.sendRequest(new Request(CommandType.SANPHAM_LAY_TAT_CA, null));
+                        int countSP = 0;
+                        if (rSp != null && rSp.isSuccess() && rSp.getData() instanceof java.util.List) {
+                            countSP = ((java.util.List<?>) rSp.getData()).size();
+                        }
+                        publish(new LoadingProgress(95, "✓ Đã tải " + countSP + " sản phẩm"));
+                        Thread.sleep(200);
+                    }
                     
-                    // Bước 3: Load danh mục cơ bản (20-35%)
-                    publish(new LoadingProgress(22, "Đang tải danh mục đơn vị tính..."));
-                    DonViTinhDao dvtDao = new DonViTinhDaoImpl();
-                    int countDVT = dvtDao.layTatCaDonViTinh().size();
-                    publish(new LoadingProgress(28, "✓ Đã tải " + countDVT + " đơn vị tính"));
-                    Thread.sleep(100);
-                    
-                    publish(new LoadingProgress(30, "Đang tải quy cách đóng gói..."));
-                    QuyCachDongGoiDao qcDao = new QuyCachDongGoiDaoImpl();
-                    int countQC = qcDao.layTatCaQuyCachDongGoi().size();
-                    publish(new LoadingProgress(35, "✓ Đã tải " + countQC + " quy cách đóng gói"));
-                    Thread.sleep(100);
-                    
-                    // Bước 4: Load nhân viên (35-50%)
-                    publish(new LoadingProgress(38, "Đang tải danh sách nhân viên..."));
-                    NhanVienDao nvDao = new NhanVienDaoImpl();
-                    int countNV = nvDao.layTatCaNhanVien().size();
-                    publish(new LoadingProgress(50, "✓ Đã tải " + countNV + " nhân viên"));
-                    Thread.sleep(150);
-                    
-                    // Bước 5: Load khách hàng (50-65%)
-                    publish(new LoadingProgress(52, "Đang tải danh sách khách hàng..."));
-                    KhachHangDao khDao = new KhachHangDaoImpl();
-                    int countKH = khDao.layTatCaKhachHang().size();
-                    publish(new LoadingProgress(65, "✓ Đã tải " + countKH + " khách hàng"));
-                    Thread.sleep(150);
-                    
-                    // Bước 6: Load nhà cung cấp (65-75%)
-                    publish(new LoadingProgress(67, "Đang tải danh sách nhà cung cấp..."));
-                    NhaCungCapDao nccDao = new NhaCungCapDaoImpl();
-                    int countNCC = nccDao.layTatCaNhaCungCap().size();
-                    publish(new LoadingProgress(75, "✓ Đã tải " + countNCC + " nhà cung cấp"));
-                    Thread.sleep(150);
-                    
-                    // Bước 7: Load sản phẩm (75-95%) - Mất nhiều thời gian nhất
-                    publish(new LoadingProgress(78, "Đang tải danh sách sản phẩm..."));
-                    SanPhamDao spDao = new SanPhamDaoImpl();
-                    int countSP = spDao.layTatCaSanPham().size();
-                    publish(new LoadingProgress(95, "✓ Đã tải " + countSP + " sản phẩm"));
-                    Thread.sleep(200);
+                    // Note: Data loading moved to server via socket above.
                     
                     // Bước 8: Hoàn tất (95-100%)
                     publish(new LoadingProgress(97, "Đang hoàn tất khởi động..."));

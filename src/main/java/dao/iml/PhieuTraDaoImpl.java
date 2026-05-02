@@ -328,6 +328,22 @@ public class PhieuTraDaoImpl
         }
     }
 
+    /**
+     * Cập nhật nhanh trạng thái duyệt của phiếu trả.
+     */
+    public boolean capNhatTrangThaiPhieuTra(String maPT, boolean daDuyet) {
+        try {
+            Integer updated = doInTransaction(em -> em.createQuery(
+                    "UPDATE PhieuTra p SET p.trangThai = :tt WHERE p.maPhieuTra = :ma")
+                    .setParameter("tt", daDuyet)
+                    .setParameter("ma", maPT)
+                    .executeUpdate());
+            return updated != null && updated > 0;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
     // ============================================================
     // 🧾 Tạo mã phiếu trả tự động — MAX theo prefix ngày
     // ============================================================

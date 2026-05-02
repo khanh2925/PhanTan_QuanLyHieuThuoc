@@ -24,12 +24,6 @@ import java.awt.KeyboardFocusManager;
 import presentation.component.button.TaoButtonNhanh;
 import presentation.component.input.TaoJtextNhanh;
 import presentation.component.label.TaoLabelNhanh;
-import dao.iml.ChiTietHoaDonDaoImpl;
-import dao.iml.ChiTietPhieuTraDaoImpl;
-import dao.iml.HoaDonDaoImpl;
-import dao.iml.KhachHangDaoImpl;
-import dao.iml.PhieuTraDaoImpl;
-import dao.iml.QuyCachDongGoiDaoImpl;
 import entity.Session;
 import presentation.dialog.ChonSanPhamTraDialog;
 import presentation.dialog.HoaDonPickerDialog;
@@ -39,7 +33,6 @@ import entity.ChiTietHoaDon;
 import entity.ChiTietPhieuTra;
 import entity.HoaDon;
 import entity.ItemTraHang;
-import entity.KhachHang;
 import entity.PhieuTra;
 import entity.QuyCachDongGoi;
 
@@ -56,6 +49,7 @@ import java.awt.event.*;
 import java.awt.Cursor;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import network.ClientService;
 
 public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 
@@ -78,11 +72,7 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 	private JButton btnTraHang;
 	private JButton btnHuy;
 
-	private final HoaDonDaoImpl hoaDonDAO;
-	private final ChiTietHoaDonDaoImpl cthdDAO;
-	private final PhieuTraDaoImpl ptDAO;
-	private final ChiTietPhieuTraDaoImpl ctptDAO;
-	private final QuyCachDongGoiDaoImpl qcdgDAO;
+	private ClientService svc;
 
 	private List<ItemTraHang> dsTraHang = new ArrayList<>();
 
@@ -90,11 +80,7 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 		this.setPreferredSize(new Dimension(1537, 850));
 		initialize();
 
-		hoaDonDAO = new HoaDonDaoImpl();
-		cthdDAO = new ChiTietHoaDonDaoImpl();
-		ptDAO = new PhieuTraDaoImpl();
-		ctptDAO = new ChiTietPhieuTraDaoImpl();
-		qcdgDAO = new QuyCachDongGoiDaoImpl();
+		svc = new ClientService();
 
 		// Thiết lập phím tắt
 		setupKeyboardShortcuts();
@@ -320,27 +306,39 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 		String sdt = txtTimKH.getText().trim();
 		if (sdt.isEmpty() || !sdt.matches("0\\d{9}")) {
 			JOptionPane.showMessageDialog(this, "Vui lòng nhập SĐT hợp lệ (10 số, bắt đầu bằng 0).", "SĐT không hợp lệ",
-					JOptionPane.WARNING_MESSAGE);
+				JOptionPane.WARNING_MESSAGE);
 			return;
 		}
 
-		KhachHang kh = new KhachHangDaoImpl().timKhachHangTheoSoDienThoai(sdt);
+		Object kh = null;
+		try {
+			kh = svc.getKhachHangByPhone(sdt);
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
 		if (kh == null) {
 			JOptionPane.showMessageDialog(this, "Không tìm thấy khách hàng với SĐT: " + sdt, "Không tìm thấy",
-					JOptionPane.WARNING_MESSAGE);
+				JOptionPane.WARNING_MESSAGE);
 			return;
 		}
 
-		List<HoaDon> ds = hoaDonDAO.timHoaDonTheoSoDienThoai(sdt);
+		List<HoaDon> ds = new ArrayList<>();
+		try {
+			java.util.List<?> rs = svc.searchPhieuTraByPhone(sdt);
+			if (rs != null) {
+				for (Object o2 : rs) if (o2 instanceof HoaDon) ds.add((HoaDon) o2);
+			}
+		} catch (Exception ex) {
+			// ignore remote error
+		}
 		if (ds.isEmpty()) {
 			JOptionPane.showMessageDialog(this, "Khách hàng chưa có hóa đơn nào.", "Thông báo",
-					JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
 
 		HoaDonPickerDialog dlg = new HoaDonPickerDialog(SwingUtilities.getWindowAncestor(this), sdt);
 		dlg.setVisible(true);
-
 		if (dlg.getSelectedMaHD() != null) {
 			hienThiChiTietHoaDon(dlg.getSelectedMaHD());
 			txtTimHoaDon.setText(dlg.getSelectedMaHD());
@@ -397,10 +395,10 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 	}
 
 	private void hienThiChiTietHoaDon(String maHD) {
-		HoaDon hd = hoaDonDAO.timHoaDonTheoMa(maHD);
+		HoaDon hd = layHoaDonTheoMa(maHD);
 		if (hd == null) {
 			JOptionPane.showMessageDialog(this, "Không tìm thấy hóa đơn với mã: " + maHD, "Không tìm thấy",
-					JOptionPane.WARNING_MESSAGE);
+				JOptionPane.WARNING_MESSAGE);
 			return;
 		}
 
@@ -415,8 +413,12 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 			return;
 		}
 
-		// Lấy toàn bộ CTHD theo hoá đơn
-		List<ChiTietHoaDon> dsCT = cthdDAO.layDanhSachChiTietTheoMaHD(maHD);
+		List<ChiTietHoaDon> dsCT = layChiTietHoaDonTheoMaHD(maHD);
+		if (dsCT == null || dsCT.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Không tìm thấy chi tiết hoá đơn cho mã: " + maHD, "Không tìm thấy",
+				JOptionPane.WARNING_MESSAGE);
+			return;
+		}
 
 		// Dialog chọn sản phẩm (theo tên như bạn đã làm)
 		ChonSanPhamTraDialog dlg = new ChonSanPhamTraDialog(dsCT);
@@ -450,12 +452,10 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 
 			var sp = ctDau.getLoSanPham().getSanPham();
 
-			// Lấy tất cả quy cách (DVT) của sản phẩm
-			List<QuyCachDongGoi> dsQuyCach = qcdgDAO.layDanhSachQuyCachTheoSanPham(sp.getMaSanPham());
+			List<QuyCachDongGoi> dsQuyCach = layQuyCachTheoSanPham(sp.getMaSanPham());
 			if (dsQuyCach == null || dsQuyCach.isEmpty()) {
 				// fallback: không có quy cách → vẫn tạo item như cũ (1 DVT)
-				// Lấy số lượng đã trả trước đó
-				int daTraTruoc = (int) ctptDAO.tongSoLuongDaTra(maHD, maLo);
+				int daTraTruoc = layTongSoLuongDaTra(maHD, maLo);
 
 				ItemTraHang item = new ItemTraHang(maLo, sp.getTenSanPham(), ctDau.getDonViTinh().getTenDonViTinh(),
 						ctDau.getGiaBan(), (int) ctDau.getSoLuong(), ctDau);
@@ -520,8 +520,7 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 			// Chọn quy cách mặc định: đơn vị có hệ số quy đổi lớn nhất nhưng <= SL mua
 			QuyCachDongGoi qcMacDinh = chonQuyCachMacDinh(dsQuyCach, tongMuaGoc);
 
-			// Lấy số lượng đã trả trước đó (quy về gốc)
-			int daTraTruoc = (int) ctptDAO.tongSoLuongDaTra(maHD, maLo);
+			int daTraTruoc = layTongSoLuongDaTra(maHD, maLo);
 
 			// Tạo ItemTraHang theo quy đổi
 			// Tạo ItemTraHang theo quy đổi (gom tất cả CTHD theo lô)
@@ -675,11 +674,10 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 			return;
 		}
 
-		HoaDon hd = hoaDonDAO.timHoaDonTheoMa(txtMaHoaDon.getText());
-		if (hd == null)
+		HoaDon hd = layHoaDonTheoMa(txtMaHoaDon.getText().trim());
+		if (hd == null) {
 			return;
-
-		String maHD = txtMaHoaDon.getText().trim();
+		}
 
 		// ===== GOM NHÓM THEO LÔ TRƯỚC KHI KIỂM TRA =====
 		Map<String, List<ItemTraHang>> mapTheoLo = new HashMap<>();
@@ -704,9 +702,15 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 
 			// 2) Lấy số lượng đã mua (lấy từ item đầu tiên vì cùng lô thì cùng số lượng)
 			int daMuaGoc = dsTheoLo.get(0).getSoLuongMuaGoc();
+			
+			// Lấy mã hóa đơn từ chi tiết hóa đơn
+			String maHD = null;
+			if (!dsTheoLo.isEmpty() && dsTheoLo.get(0).getChiTietHoaDonGoc() != null) {
+				maHD = dsTheoLo.get(0).getChiTietHoaDonGoc().getHoaDon().getMaHoaDon();
+			}
 
 			// 3) Lấy tổng đã trả trước đó (quy về gốc)
-			double daTraGoc = ctptDAO.tongSoLuongDaTra(maHD, maLo);
+			int daTraGoc = layTongSoLuongDaTra(maHD, maLo);
 
 			// 4) Kiểm tra vượt số lượng cho phép
 			if (daTraGoc + tongTraGoc > daMuaGoc) {
@@ -741,7 +745,7 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 		}
 
 		// ===== TẠO PHIẾU TRẢ SAU KHI KIỂM TRA HỢP LỆ =====
-		String maPhieu = ptDAO.taoMaPhieuTra();
+		String maPhieu = svc.taoMaPhieuTra();
 
 		PhieuTra pt = new PhieuTra();
 		pt.setMaPhieuTra(maPhieu);
@@ -770,7 +774,7 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 
 		pt.setChiTietPhieuTraList(dsCT);
 
-		boolean ok = ptDAO.themPhieuTraVaChiTiet(pt, dsCT);
+		boolean ok = svc.createPhieuTra(pt, dsCT);
 		if (!ok) {
 			JOptionPane.showMessageDialog(this, "Không thể lưu phiếu trả! Vui lòng thử lại.", "Lỗi",
 					JOptionPane.ERROR_MESSAGE);
@@ -779,6 +783,69 @@ public class TraHangNhanVien_GUI extends JPanel implements ActionListener {
 
 		new PhieuTraPreviewDialog(SwingUtilities.getWindowAncestor(this), pt, dsCT).setVisible(true);
 		resetForm();
+	}
+
+	private HoaDon layHoaDonTheoMa(String maHD) {
+		if (maHD == null || maHD.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			Object o = svc.getHoaDonByCode(maHD.trim());
+			if (o instanceof HoaDon) {
+				return (HoaDon) o;
+			}
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		try {
+			Object o = svc.getHoaDonByCode(maHD.trim());
+			if (o instanceof HoaDon) return (HoaDon) o;
+		} catch (Exception ex) {
+			// ignore
+		}
+		return null;
+	}
+
+	private List<ChiTietHoaDon> layChiTietHoaDonTheoMaHD(String maHD) {
+		List<ChiTietHoaDon> ds = new ArrayList<>();
+		try {
+			java.util.List<?> rs = svc.getChiTietHoaDonByMaHD(maHD);
+			if (rs != null) {
+				for (Object o : rs) {
+					if (o instanceof ChiTietHoaDon) {
+						ds.add((ChiTietHoaDon) o);
+					}
+				}
+			}
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		return ds;
+	}
+
+	private List<QuyCachDongGoi> layQuyCachTheoSanPham(String maSanPham) {
+		List<QuyCachDongGoi> ds = new ArrayList<>();
+		try {
+			java.util.List<?> qcs = svc.getPackagingRulesByProduct(maSanPham);
+			if (qcs != null) {
+				for (Object o : qcs) {
+					if (o instanceof QuyCachDongGoi) {
+						ds.add((QuyCachDongGoi) o);
+					}
+				}
+			}
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		return ds;
+	}
+
+	private int layTongSoLuongDaTra(String maHD, String maLo) {
+		try {
+			return svc.tongSoLuongDaTra(maHD, maLo);
+		} catch (Exception ex) {
+			return 0;
+		}
 	}
 
 	private void resetForm() {

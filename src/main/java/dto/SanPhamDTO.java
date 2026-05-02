@@ -2,8 +2,6 @@ package dto;
 
 import java.io.Serializable;
 
-import entity.SanPham;
-
 /**
  * DTO cho san pham - dung de hien thi, tim kiem va gui qua socket.
  */
@@ -25,25 +23,6 @@ public class SanPhamDTO implements Serializable {
     private double phanTramGiam;
 
     public SanPhamDTO() {}
-
-    public static SanPhamDTO fromEntity(SanPham sp) {
-        SanPhamDTO dto = new SanPhamDTO();
-        dto.maSanPham = sp.getMaSanPham();
-        dto.tenSanPham = sp.getTenSanPham();
-        dto.loaiSanPham = sp.getLoaiSanPham() != null ? sp.getLoaiSanPham().getTenLoai() : "";
-        dto.duongDung = sp.getDuongDung() != null ? sp.getDuongDung().getTenDuongDung() : "";
-        dto.soDangKy = sp.getSoDangKy();
-        dto.giaNhap = sp.getGiaNhap();
-        try {
-            dto.giaBan = sp.getGiaBan();
-        } catch (Exception e) {
-            dto.giaBan = 0;
-        }
-        dto.hinhAnh = sp.getHinhAnh();
-        dto.keBanSanPham = sp.getKeBanSanPham();
-        dto.hoatDong = sp.isHoatDong();
-        return dto;
-    }
 
     public String getMaSanPham() { return maSanPham; }
     public void setMaSanPham(String maSanPham) { this.maSanPham = maSanPham; }
