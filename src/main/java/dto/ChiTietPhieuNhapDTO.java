@@ -2,8 +2,6 @@ package dto;
 
 import java.io.Serializable;
 
-import entity.ChiTietPhieuNhap;
-
 public class ChiTietPhieuNhapDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -20,25 +18,6 @@ public class ChiTietPhieuNhapDTO implements Serializable {
     private double thanhTien;
 
     public ChiTietPhieuNhapDTO() {}
-
-    public static ChiTietPhieuNhapDTO fromEntity(ChiTietPhieuNhap ct) {
-        ChiTietPhieuNhapDTO dto = new ChiTietPhieuNhapDTO();
-        dto.maPhieuNhap = ct.getPhieuNhap() != null ? ct.getPhieuNhap().getMaPhieuNhap() : "";
-        dto.maLo = ct.getLoSanPham() != null ? ct.getLoSanPham().getMaLo() : "";
-        dto.maSanPham = ct.getLoSanPham() != null && ct.getLoSanPham().getSanPham() != null
-                ? ct.getLoSanPham().getSanPham().getMaSanPham() : "";
-        dto.tenSanPham = ct.getLoSanPham() != null && ct.getLoSanPham().getSanPham() != null
-                ? ct.getLoSanPham().getSanPham().getTenSanPham() : "";
-        dto.hanSuDung = ct.getLoSanPham() != null && ct.getLoSanPham().getHanSuDung() != null
-                ? ct.getLoSanPham().getHanSuDung().toString() : "";
-        dto.soLuongTon = ct.getLoSanPham() != null ? ct.getLoSanPham().getSoLuongTon() : 0;
-        dto.maDonViTinh = ct.getDonViTinh() != null ? ct.getDonViTinh().getMaDonViTinh() : "";
-        dto.tenDonViTinh = ct.getDonViTinh() != null ? ct.getDonViTinh().getTenDonViTinh() : "";
-        dto.soLuongNhap = ct.getSoLuongNhap();
-        dto.donGiaNhap = ct.getDonGiaNhap();
-        dto.thanhTien = ct.getThanhTien();
-        return dto;
-    }
 
     public String getMaPhieuNhap() { return maPhieuNhap; }
     public void setMaPhieuNhap(String maPhieuNhap) { this.maPhieuNhap = maPhieuNhap; }

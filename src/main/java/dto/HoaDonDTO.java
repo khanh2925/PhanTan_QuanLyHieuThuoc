@@ -1,8 +1,6 @@
 package dto;
 
-
 import java.io.Serializable;
-import entity.HoaDon;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.ArrayList;
@@ -25,21 +23,6 @@ public class HoaDonDTO implements Serializable {
 
     public HoaDonDTO() {
         this.chiTietList = new ArrayList<>();
-    }
-
-    public static HoaDonDTO fromEntity(HoaDon hd) {
-        HoaDonDTO dto = new HoaDonDTO();
-        dto.maHoaDon = hd.getMaHoaDon();
-        dto.tenKhachHang = hd.getKhachHang() != null ? hd.getKhachHang().getTenKhachHang() : "Khách lẻ";
-        dto.sdtKhachHang = hd.getKhachHang() != null ? hd.getKhachHang().getSoDienThoai() : "";
-        dto.tenNhanVien = hd.getNhanVien() != null ? hd.getNhanVien().getTenNhanVien() : "";
-        dto.ngayLap = hd.getNgayLap() != null ? 
-            hd.getNgayLap().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "";
-        dto.tongTien = hd.getTongTien();
-        dto.giamGia = hd.getSoTienGiamKhuyenMai();
-        dto.thanhToan = hd.getTongThanhToan();
-        dto.soSanPham = hd.getDanhSachChiTiet() != null ? hd.getDanhSachChiTiet().size() : 0;
-        return dto;
     }
 
     // Getters & Setters

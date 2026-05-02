@@ -4,9 +4,7 @@ import java.util.List;
 
 import dao.KhachHangDao;
 import dao.iml.KhachHangDaoImpl;
-import dto.KhachHangDTO;
 import entity.KhachHang;
-import mapper.Mapper;
 import service.KhachHangService;
 
 public class KhachHangServiceImpl implements KhachHangService {
@@ -17,38 +15,29 @@ public class KhachHangServiceImpl implements KhachHangService {
         this.khachHangDao = new KhachHangDaoImpl();
     }
 
-    public KhachHangServiceImpl(KhachHangDao khachHangDao) {
-        this.khachHangDao = khachHangDao;
+    @Override
+    public List<KhachHang> layTatCaKhachHang() {
+        return khachHangDao.layTatCaKhachHang();
     }
 
     @Override
-    public List<KhachHangDTO> layTatCaKhachHang() {
-        return Mapper.mapList(khachHangDao.layTatCaKhachHang(), KhachHangDTO.class);
+    public KhachHang layKhachHangTheoMa(String maKhachHang) {
+        return khachHangDao.timKhachHangTheoMa(maKhachHang);
     }
 
     @Override
-    public KhachHangDTO timKhachHangTheoMa(String maKhachHang) {
-        return Mapper.map(khachHangDao.timKhachHangTheoMa(maKhachHang), KhachHangDTO.class);
+    public KhachHang layKhachHangTheoSDT(String soDienThoai) {
+        return khachHangDao.timKhachHangTheoSDT(soDienThoai);
     }
 
     @Override
-    public KhachHangDTO timKhachHangTheoSoDienThoai(String soDienThoai) {
-        return Mapper.map(khachHangDao.timKhachHangTheoSoDienThoai(soDienThoai), KhachHangDTO.class);
+    public boolean themKhachHang(KhachHang khachHang) {
+        return khachHangDao.themKhachHang(khachHang);
     }
 
     @Override
-    public List<KhachHangDTO> timKiemKhachHang(String tuKhoa) {
-        return Mapper.mapList(khachHangDao.timKhachHang(tuKhoa), KhachHangDTO.class);
-    }
-
-    @Override
-    public boolean themKhachHang(KhachHangDTO kh) {
-        return khachHangDao.themKhachHang(Mapper.map(kh, KhachHang.class));
-    }
-
-    @Override
-    public boolean capNhatKhachHang(KhachHangDTO kh) {
-        return khachHangDao.capNhatKhachHang(Mapper.map(kh, KhachHang.class));
+    public boolean capNhatKhachHang(KhachHang khachHang) {
+        return khachHangDao.capNhatKhachHang(khachHang);
     }
 
     @Override
@@ -57,7 +46,7 @@ public class KhachHangServiceImpl implements KhachHangService {
     }
 
     @Override
-    public String taoMaKhachHangTuDong() {
+    public String phatSinhMaKhachHangTiepTheo() {
         return khachHangDao.phatSinhMaKhachHangTiepTheo();
     }
 

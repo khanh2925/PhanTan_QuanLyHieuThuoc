@@ -27,6 +27,7 @@ import presentation.component.border.RoundedBorder;
 import dao.iml.PhieuNhapDaoImpl;
 import entity.ChiTietPhieuNhap;
 import entity.PhieuNhap;
+import network.ClientService;
 
 public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, MouseListener {
 
@@ -55,6 +56,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
     private PhieuNhapDaoImpl phieuNhapDaoImpl;
     private final DecimalFormat df = new DecimalFormat("#,###đ");
     private final DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private ClientService svc;
 
     public TraCuuPhieuNhap_GUI() {
         this(null);
@@ -63,6 +65,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
     public TraCuuPhieuNhap_GUI(JFrame mainFrame) {
         this.mainFrame = mainFrame;
         phieuNhapDaoImpl = new PhieuNhapDaoImpl();
+        svc = new ClientService();
         setPreferredSize(new Dimension(1537, 850));
         initialize();
     }
@@ -311,7 +314,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
                 }
 
                 String maPhieuNhap = tblPhieuNhap.getValueAt(selectedRow, 1).toString();
-                PhieuNhap phieuNhap = phieuNhapDaoImpl.timPhieuNhapTheoMa(maPhieuNhap);
+                PhieuNhap phieuNhap = layPhieuNhapTheoMa(maPhieuNhap);
                 if (phieuNhap != null) {
                     hienThiHoaDon(phieuNhap);
                 }
@@ -352,7 +355,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
             }
 
             String maPhieuNhap = tblPhieuNhap.getValueAt(selectedRow, 1).toString();
-            PhieuNhap phieuNhap = phieuNhapDaoImpl.timPhieuNhapTheoMa(maPhieuNhap);
+            PhieuNhap phieuNhap = layPhieuNhapTheoMa(maPhieuNhap);
             if (phieuNhap != null) {
                 hienThiHoaDon(phieuNhap);
             }
@@ -367,7 +370,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
                 int row = tblPhieuNhap.getSelectedRow();
                 if (row != -1) {
                     String maPN = tblPhieuNhap.getValueAt(row, 1).toString();
-                    PhieuNhap pn = phieuNhapDaoImpl.timPhieuNhapTheoMa(maPN);
+                    PhieuNhap pn = layPhieuNhapTheoMa(maPN);
                     if (pn != null) {
                         hienThiHoaDon(pn);
                     }
@@ -399,9 +402,35 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
     public void mouseExited(MouseEvent e) {
     }
 
+    private List<PhieuNhap> layDanhSachPhieuNhap() {
+        try {
+            java.util.List<?> all = svc.getAllPhieuNhap();
+            if (all != null && !all.isEmpty() && all.get(0) instanceof PhieuNhap) {
+                List<PhieuNhap> result = new java.util.ArrayList<>();
+                for (Object o : all) result.add((PhieuNhap) o);
+                return result;
+            }
+        } catch (Exception ex) {
+            // ignore and fallback to DAO
+        }
+        return phieuNhapDaoImpl.layDanhSachPhieuNhap();
+    }
+
+    private PhieuNhap layPhieuNhapTheoMa(String maPhieuNhap) {
+        try {
+            Object o = svc.getPhieuNhapByCode(maPhieuNhap);
+            if (o instanceof PhieuNhap) {
+                return (PhieuNhap) o;
+            }
+        } catch (Exception ex) {
+            // ignore and fallback
+        }
+        return phieuNhapDaoImpl.timPhieuNhapTheoMa(maPhieuNhap);
+    }
+
     private void taiDuLieuPhieuNhap() {
         modelPhieuNhap.setRowCount(0);
-        List<PhieuNhap> listPN = phieuNhapDaoImpl.layDanhSachPhieuNhap();
+        List<PhieuNhap> listPN = layDanhSachPhieuNhap();
 
         int stt = 1;
         for (PhieuNhap pn : listPN) {
@@ -499,9 +528,28 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         }
 
         modelPhieuNhap.setRowCount(0);
-        List<PhieuNhap> listPN = phieuNhapDaoImpl.timKiemPhieuNhap(keyword, tuNgay, denNgay);
+        List<PhieuNhap> listPN = layDanhSachPhieuNhap();
+        if (!listPN.isEmpty()) {
+            String kw = keyword == null ? "" : keyword.trim().toLowerCase();
+            LocalDate tu = tuNgay.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            LocalDate den = denNgay.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            List<PhieuNhap> filtered = new java.util.ArrayList<>();
+            for (PhieuNhap pn : listPN) {
+                boolean inRange = pn.getNgayNhap() != null && !pn.getNgayNhap().isBefore(tu) && !pn.getNgayNhap().isAfter(den);
+                if (!inRange) continue;
+                if (!kw.isEmpty()) {
+                    String ma = pn.getMaPhieuNhap() != null ? pn.getMaPhieuNhap().toLowerCase() : "";
+                    String nv = (pn.getNhanVien() != null && pn.getNhanVien().getTenNhanVien() != null) ? pn.getNhanVien().getTenNhanVien().toLowerCase() : "";
+                    String ncc = (pn.getNhaCungCap() != null && pn.getNhaCungCap().getTenNhaCungCap() != null) ? pn.getNhaCungCap().getTenNhaCungCap().toLowerCase() : "";
+                    if (!(ma.contains(kw) || nv.contains(kw) || ncc.contains(kw))) continue;
+                }
+                filtered.add(pn);
+            }
+            listPN = filtered;
+        }
+        if (listPN == null || listPN.isEmpty()) listPN = phieuNhapDaoImpl.timKiemPhieuNhap(keyword, tuNgay, denNgay);
 
-        if (listPN.isEmpty()) {
+        if (listPN == null || listPN.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu nhập nào phù hợp!");
             return;
         }
@@ -531,7 +579,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
     private void hienThiChiTietPhieuNhap(String maPN) {
         modelChiTiet.setRowCount(0);
 
-        PhieuNhap pn = phieuNhapDaoImpl.timPhieuNhapTheoMa(maPN);
+        PhieuNhap pn = layPhieuNhapTheoMa(maPN);
 
         if (pn != null && pn.getChiTietPhieuNhapList() != null) {
             int stt = 1;

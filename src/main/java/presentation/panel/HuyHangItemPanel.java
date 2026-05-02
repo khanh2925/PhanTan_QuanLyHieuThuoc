@@ -5,6 +5,7 @@ import entity.QuyCachDongGoi;
 import entity.LoSanPham;
 import dao.iml.LoSanPhamDaoImpl;
 import dao.iml.QuyCachDongGoiDaoImpl;
+import network.ClientService;
 
 import javax.swing.*;
 import javax.swing.border.*;
@@ -48,6 +49,7 @@ public class HuyHangItemPanel extends JPanel {
 
 	private LoSanPhamDaoImpl loDAO = new LoSanPhamDaoImpl();
 	private QuyCachDongGoiDaoImpl quyCachDAO = new QuyCachDongGoiDaoImpl();
+	private ClientService svc = new ClientService();
 	private List<QuyCachDongGoi> danhSachQuyCach;
 	private JComboBox<String> cboDonVi;
 	private int soLuongTonGoc; // Lưu số lượng tồn gốc từ DB
@@ -153,6 +155,7 @@ public class HuyHangItemPanel extends JPanel {
 		cboDonVi.setMinimumSize(new Dimension(80, 26));
 		// NOTE: loadDonViTinh() is called later after btnClone is created
 		add(cboDonVi);
+		// load quy cách via svc later if needed
 		lblQuyDoi = new JLabel();
 		lblQuyDoi.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 		lblQuyDoi.setPreferredSize(new Dimension(70, 30));
@@ -482,8 +485,15 @@ public class HuyHangItemPanel extends JPanel {
 	}
 
 	private void loadDonViTinh() {
-		// Lấy lô sản phẩm từ mã lô
-		LoSanPham lo = loDAO.timLoTheoMa(item.getMaLo());
+		// Lấy lô sản phẩm từ mã lô - try server first, fallback to DAO
+		LoSanPham lo = null;
+		try {
+			Object o = svc.getLotByCode(item.getMaLo());
+			if (o instanceof LoSanPham) lo = (LoSanPham) o;
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		if (lo == null) lo = loDAO.timLoTheoMa(item.getMaLo());
 
 		if (lo != null && lo.getSanPham() != null) {
 			String maSP = lo.getSanPham().getMaSanPham();

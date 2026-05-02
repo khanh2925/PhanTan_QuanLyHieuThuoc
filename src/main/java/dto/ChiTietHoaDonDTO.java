@@ -1,8 +1,6 @@
 package dto;
 
-
 import java.io.Serializable;
-import entity.ChiTietHoaDon;
 
 /**
  * DTO cho chi tiết hóa đơn
@@ -19,19 +17,6 @@ public class ChiTietHoaDonDTO implements Serializable {
     private double giamGia;
 
     public ChiTietHoaDonDTO() {}
-
-    public static ChiTietHoaDonDTO fromEntity(ChiTietHoaDon ct) {
-        ChiTietHoaDonDTO dto = new ChiTietHoaDonDTO();
-        dto.tenSanPham = ct.getSanPham() != null ? ct.getSanPham().getTenSanPham() : "";
-        dto.maLo = ct.getLoSanPham() != null ? ct.getLoSanPham().getMaLo() : "";
-        dto.donViTinh = ct.getDonViTinh() != null ? ct.getDonViTinh().getTenDonViTinh() : "";
-        dto.soLuong = (int) ct.getSoLuong();
-        dto.donGia = ct.getGiaBan();
-        dto.thanhTien = ct.getThanhTien();
-        dto.tenKhuyenMai = ct.getKhuyenMai() != null ? ct.getKhuyenMai().getTenKM() : "";
-        dto.giamGia = (ct.getSoLuong() * ct.getGiaBan()) - ct.getThanhTien();
-        return dto;
-    }
 
     // Getters & Setters
     public String getTenSanPham() { return tenSanPham; }

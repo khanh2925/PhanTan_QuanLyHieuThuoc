@@ -5,10 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.hibernate.Hibernate;
-
-import entity.PhieuNhap;
-
 public class PhieuNhapDTO implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -25,24 +21,6 @@ public class PhieuNhapDTO implements Serializable {
 
     public PhieuNhapDTO() {
         this.chiTietList = new ArrayList<>();
-    }
-
-    public static PhieuNhapDTO fromEntity(PhieuNhap pn) {
-        PhieuNhapDTO dto = new PhieuNhapDTO();
-        dto.maPhieuNhap = pn.getMaPhieuNhap();
-        dto.ngayNhap = pn.getNgayNhap() != null ? pn.getNgayNhap().format(DATE_FORMAT) : "";
-        dto.maNhaCungCap = pn.getNhaCungCap() != null ? pn.getNhaCungCap().getMaNhaCungCap() : "";
-        dto.tenNhaCungCap = pn.getNhaCungCap() != null ? pn.getNhaCungCap().getTenNhaCungCap() : "";
-        dto.maNhanVien = pn.getNhanVien() != null ? pn.getNhanVien().getMaNhanVien() : "";
-        dto.tenNhanVien = pn.getNhanVien() != null ? pn.getNhanVien().getTenNhanVien() : "";
-        dto.tongTien = pn.getTongTien();
-        if (pn.getChiTietPhieuNhapList() != null && Hibernate.isInitialized(pn.getChiTietPhieuNhapList())) {
-            dto.soDongChiTiet = pn.getChiTietPhieuNhapList().size();
-            dto.chiTietList = pn.getChiTietPhieuNhapList().stream()
-                    .map(ChiTietPhieuNhapDTO::fromEntity)
-                    .toList();
-        }
-        return dto;
     }
 
     public String getMaPhieuNhap() { return maPhieuNhap; }

@@ -1,9 +1,6 @@
 package dto;
 
-
 import java.io.Serializable;
-import entity.NhanVien;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -24,21 +21,6 @@ public class NhanVienDTO implements Serializable {
     private double doanhThuThang;
 
     public NhanVienDTO() {}
-
-    public static NhanVienDTO fromEntity(NhanVien nv) {
-        NhanVienDTO dto = new NhanVienDTO();
-        dto.maNhanVien = nv.getMaNhanVien();
-        dto.tenNhanVien = nv.getTenNhanVien();
-        dto.gioiTinh = nv.isGioiTinh() ? "Nam" : "Nữ";
-        dto.ngaySinh = nv.getNgaySinh() != null ? 
-            nv.getNgaySinh().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "";
-        dto.soDienThoai = nv.getSoDienThoai();
-        dto.diaChi = nv.getDiaChi();
-        dto.vaiTro = nv.isQuanLy() ? "Quản lý" : "Nhân viên";
-        dto.caLam = getCaLamText(nv.getCaLam());
-        dto.trangThai = nv.isTrangThai() ? "Đang làm" : "Nghỉ việc";
-        return dto;
-    }
 
     private static String getCaLamText(int caLam) {
         switch (caLam) {

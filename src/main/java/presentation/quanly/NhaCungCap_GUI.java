@@ -3,7 +3,6 @@ package presentation.quanly;
 import presentation.component.border.RoundedBorder;
 import presentation.component.button.PillButton;
 import presentation.component.input.PlaceholderSupport;
-import dao.iml.NhaCungCapDaoImpl;
 import entity.NhaCungCap;
 import java.awt.*;
 import java.awt.event.*;
@@ -11,6 +10,7 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.*;
+import network.ClientService;
 
 @SuppressWarnings("serial")
 public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListener {
@@ -27,7 +27,7 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
 
     private PillButton btnThem, btnSua, btnLamMoi, btnTimKiem;
 
-    private NhaCungCapDaoImpl nccDAO;
+    private ClientService svc;
     private List<NhaCungCap> danhSachNhaCungCap;
 
     private final Font FONT_TEXT = new Font("Segoe UI", Font.PLAIN, 16);
@@ -42,7 +42,7 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
 
     public NhaCungCap_GUI() {
         setPreferredSize(new Dimension(1537, 850));
-        nccDAO = new NhaCungCapDaoImpl();
+        svc = new ClientService();
         initialize();
     }
 
@@ -93,10 +93,10 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
             public void actionPerformed(ActionEvent e) {
                 if (validData()) {
                     NhaCungCap ncc = getFromForm();
-                    String maMoi = nccDAO.taoMaTuDong();
+                    String maMoi = svc.taoMaNhaCungCap();
                     ncc.setMaNhaCungCap(maMoi);
                     
-                    if (nccDAO.themNhaCungCap(ncc)) {
+                    if (svc.createNhaCungCap(ncc)) {
                         JOptionPane.showMessageDialog(NhaCungCap_GUI.this, "Thêm nhà cung cấp thành công!");
                         danhSachNhaCungCap.add(ncc);
                         hienThiDanhSach(danhSachNhaCungCap);
@@ -120,7 +120,7 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
                 if (validData()) {
                     NhaCungCap ncc = getFromForm();
                     String maNCC = ncc.getMaNhaCungCap();
-                    if (nccDAO.capNhatNhaCungCap(ncc)) {
+                    if (svc.updateNhaCungCap(ncc)) {
                         JOptionPane.showMessageDialog(NhaCungCap_GUI.this, "Cập nhật thông tin thành công!");
                         for (int i = 0; i < danhSachNhaCungCap.size(); i++) {
                             if (danhSachNhaCungCap.get(i).getMaNhaCungCap().equals(maNCC)) {
@@ -340,10 +340,15 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
         if (o.equals(btnThem)) {
             if (validData()) {
                 NhaCungCap ncc = getFromForm();
-                String maMoi = nccDAO.taoMaTuDong();
+                String maMoi;
+                try {
+                    maMoi = svc.taoMaNhaCungCap();
+                } catch (Exception ex) {
+                    maMoi = "NCC-001";
+                }
                 ncc.setMaNhaCungCap(maMoi);
                 
-                if (nccDAO.themNhaCungCap(ncc)) {
+                if (svc.createNhaCungCap(ncc)) {
                     JOptionPane.showMessageDialog(this, "Thêm nhà cung cấp thành công: " + maMoi);
                     danhSachNhaCungCap.add(ncc);
                     hienThiDanhSach(danhSachNhaCungCap);
@@ -362,7 +367,7 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
             if (validData()) {
                 NhaCungCap ncc = getFromForm();
                 String maNCC = ncc.getMaNhaCungCap();
-                if (nccDAO.capNhatNhaCungCap(ncc)) {
+                if (svc.updateNhaCungCap(ncc)) {
                     JOptionPane.showMessageDialog(this, "Cập nhật thông tin thành công!");
                     for (int i = 0; i < danhSachNhaCungCap.size(); i++) {
                         if (danhSachNhaCungCap.get(i).getMaNhaCungCap().equals(maNCC)) {
@@ -384,7 +389,13 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
     }
 
     private void taiDuLieuNhaCungCap() {
-        danhSachNhaCungCap = nccDAO.layTatCaNhaCungCap();
+        try {
+            danhSachNhaCungCap = new java.util.ArrayList<>();
+            java.util.List<?> rs = svc.getAllNhaCungCap();
+            for (Object o : rs) if (o instanceof NhaCungCap ncc) danhSachNhaCungCap.add(ncc);
+        } catch (Exception ex) {
+            danhSachNhaCungCap = java.util.Collections.emptyList();
+        }
         hienThiDanhSach(danhSachNhaCungCap);
     }
     
@@ -425,7 +436,11 @@ public class NhaCungCap_GUI extends JPanel implements ActionListener, MouseListe
     }
 
     private void lamMoiForm() {
-        txtMaNCC.setText(nccDAO.taoMaTuDong());
+        try {
+            txtMaNCC.setText(svc.taoMaNhaCungCap());
+        } catch (Exception ex) {
+            txtMaNCC.setText("NCC-001");
+        }
         txtTenNCC.setText("");
         PlaceholderSupport.addPlaceholder(txtTenNCC, PH_TEN_NCC);
         txtSDT.setText("");

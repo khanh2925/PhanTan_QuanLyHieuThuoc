@@ -10,7 +10,7 @@ import javax.swing.table.*;
 import presentation.component.input.PlaceholderSupport;
 import presentation.component.border.RoundedBorder;
 import presentation.component.button.PillButton;
-import dao.iml.DonViTinhDaoImpl;
+import network.ClientService;
 import entity.DonViTinh;
 
 @SuppressWarnings("serial")
@@ -31,8 +31,8 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
     // Buttons
     private PillButton btnThem, btnSua, btnLamMoi, btnTimKiem;
 
-    // DAO & data
-    private DonViTinhDaoImpl dvtDAO;
+    // service & data
+    private ClientService svc;
     private List<DonViTinh> dsDonViTinh;
 
     // Style
@@ -49,7 +49,7 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
-        dvtDAO = new DonViTinhDaoImpl();
+        svc = new ClientService();
         // 1. HEADER
         taoPhanHeader();
         add(pnHeader, BorderLayout.NORTH);
@@ -159,7 +159,11 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
         txtMaDVT = createTextField(xStart + 100, yStart, wTxt);
         txtMaDVT.setEditable(false); // Mã tự sinh từ DAO
         p.add(txtMaDVT);
-        PlaceholderSupport.addPlaceholder(txtMaDVT, dvtDAO.taoMaTuDong());
+        try {
+            PlaceholderSupport.addPlaceholder(txtMaDVT, svc.taoMaDonViTinh());
+        } catch (Exception ex) {
+            PlaceholderSupport.addPlaceholder(txtMaDVT, "DVT-001");
+        }
 
         // Hàng 2: Tên Đơn Vị Tính
         yStart += hText + gap;
@@ -268,7 +272,13 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
 
     private void loadDataLenBang() {
         modelDonViTinh.setRowCount(0);
-        dsDonViTinh = dvtDAO.layTatCaDonViTinh();
+        try {
+            dsDonViTinh = new java.util.ArrayList<>();
+            java.util.List<?> rs = svc.getAllDonViTinh();
+            for (Object o : rs) if (o instanceof DonViTinh dvt) dsDonViTinh.add(dvt);
+        } catch (Exception ex) {
+            dsDonViTinh = java.util.Collections.emptyList();
+        }
         for (DonViTinh dvt : dsDonViTinh) {
             modelDonViTinh.addRow(new Object[] {
                     dvt.getMaDonViTinh(),
@@ -289,7 +299,11 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
 
     private void lamMoiForm() {
         txtMaDVT.setText("");
-        PlaceholderSupport.addPlaceholder(txtMaDVT, dvtDAO.taoMaTuDong());
+        try {
+            PlaceholderSupport.addPlaceholder(txtMaDVT, svc.taoMaDonViTinh());
+        } catch (Exception ex) {
+            PlaceholderSupport.addPlaceholder(txtMaDVT, "DVT-001");
+        }
 
         txtTenDVT.setText("");
         PlaceholderSupport.addPlaceholder(txtTenDVT, "Nhập tên đơn vị tính");
@@ -364,7 +378,12 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
             return;
         }
 
-        String maMoi = dvtDAO.taoMaTuDong();
+        String maMoi;
+        try {
+            maMoi = svc.taoMaDonViTinh();
+        } catch (Exception ex) {
+            maMoi = "DVT-001";
+        }
         if (maMoi == null || maMoi.trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Không sinh được mã đơn vị tính mới", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
@@ -375,17 +394,21 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
             return;
         }
 
-        if (dvtDAO.themDonViTinh(dvt)) {
-            JOptionPane.showMessageDialog(this, "Thêm đơn vị tính thành công!");
-            txtMaDVT.setText(maMoi);
-            modelDonViTinh.addRow(new Object[] {
-                    dvt.getMaDonViTinh(),
-                    dvt.getTenDonViTinh()
-            });
-            lamMoiForm();
-            txtTenDVT.requestFocus();
-        } else {
-            JOptionPane.showMessageDialog(this, "Thêm thất bại (Trùng mã hoặc lỗi DB)!");
+        try {
+            if (svc.createDonViTinh(dvt)) {
+                JOptionPane.showMessageDialog(this, "Thêm đơn vị tính thành công!");
+                txtMaDVT.setText(maMoi);
+                modelDonViTinh.addRow(new Object[] {
+                        dvt.getMaDonViTinh(),
+                        dvt.getTenDonViTinh()
+                });
+                lamMoiForm();
+                txtTenDVT.requestFocus();
+            } else {
+                JOptionPane.showMessageDialog(this, "Thêm thất bại (Trùng mã hoặc lỗi DB)!");
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Thêm thất bại: " + ex.getMessage());
         }
     }
 
@@ -411,12 +434,16 @@ public class DonViTinh_QL_GUI extends JPanel implements ActionListener {
             return;
         }
 
-        if (dvtDAO.capNhatDonViTinh(dvt)) {
-            JOptionPane.showMessageDialog(this, "Cập nhật thành công!");
-            modelDonViTinh.setValueAt(txtTenDVT.getText(), row, 1);
-            lamMoiForm();
-        } else {
-            JOptionPane.showMessageDialog(this, "Cập nhật thất bại!");
+        try {
+            if (svc.updateDonViTinh(dvt)) {
+                JOptionPane.showMessageDialog(this, "Cập nhật thành công!");
+                modelDonViTinh.setValueAt(txtTenDVT.getText(), row, 1);
+                lamMoiForm();
+            } else {
+                JOptionPane.showMessageDialog(this, "Cập nhật thất bại!");
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Cập nhật thất bại: " + ex.getMessage());
         }
     }
 

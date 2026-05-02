@@ -25,13 +25,15 @@ import javax.swing.UIManager;
 import presentation.component.panel.ImagePanel;
 import presentation.component.button.PillButton;
 import presentation.component.border.RoundedBorder;
+import presentation.dialog.QuenMatKhau_Dialog;
 import entity.NhanVien;
 import entity.TaiKhoan;
-import presentation.dialog.QuenMatKhau_Dialog;
-import dao.iml.TaiKhoanDaoImpl;
-import dao.TaiKhoanDao;
 import entity.Session;
-import dao.iml.DataPreloaderDaoImpl;
+import network.ClientSocket;
+import network.ClientService;
+import network.Request;
+import network.Response;
+import network.CommandType;
 
 @SuppressWarnings("serial")
 public class DangNhap_GUI extends JFrame {
@@ -39,17 +41,13 @@ public class DangNhap_GUI extends JFrame {
 	private JTextField txtTaiKhoan;
 	private JPasswordField txtMatKhau;
 
-	// Khởi tạo Dao
-	private final TaiKhoanDao taiKhoanDao = new TaiKhoanDaoImpl();
+	// Network based authentication (will call server)
 
 	public DangNhap_GUI() {
 		// Thiết lập màn hình hiển thị toàn bộ
 		setExtendedState(JFrame.MAXIMIZED_BOTH);
 		initialize();
 		setVisible(true); // Hiển thị khung sau khi khởi tạo
-
-		// 🚀 BẮT ĐẦU TẢI DỮ LIỆU NGẦM NGAY KHI MỞ MÀN HÌNH ĐĂNG NHẬP
-		new DataPreloaderDaoImpl().preloadAllData();
 	}
 
 	private void initialize() {
@@ -287,35 +285,32 @@ public class DangNhap_GUI extends JFrame {
 			return;
 		}
 
-		// 2. Gọi Dao để xác thực
-		TaiKhoan taiKhoan = taiKhoanDao.dangNhap(tenDangNhap, matKhau); // Hàm đã có join NhanVien
-
-		if (taiKhoan != null) {
-			// Đăng nhập thành công
+		// 2. Gọi Server qua Socket để xác thực
+		try {
+		    ClientService svc = new ClientService();
+		    TaiKhoan taiKhoan = svc.login(tenDangNhap, matKhau);
+		    if (taiKhoan != null) {
 			NhanVien nvDangNhap = taiKhoan.getNhanVien();
-			System.out.println(taiKhoan);
-
-			// 3. Lưu Session
 			Session.getInstance().setTaiKhoanDangNhap(taiKhoan);
-
 			JOptionPane.showMessageDialog(this,
-					"Đăng nhập thành công!\nXin chào " + nvDangNhap.getTenNhanVien() + " ("
-							+ (nvDangNhap.isQuanLy() ? "Quản lý" : "Nhân viên") + ")",
-					"Thành công", JOptionPane.INFORMATION_MESSAGE);
-
-			// 4. Đóng màn hình đăng nhập
+				"Đăng nhập thành công!\nXin chào " + nvDangNhap.getTenNhanVien() + " ("
+					+ (nvDangNhap.isQuanLy() ? "Quản lý" : "Nhân viên") + ")",
+				"Thành công", JOptionPane.INFORMATION_MESSAGE);
 			this.dispose();
-
-			// 5. Mở màn hình chính (Main)
 			new Main(nvDangNhap).setVisible(true);
-
-		} else {
-			// Đăng nhập thất bại
+			return;
+		    } else {
 			JOptionPane.showMessageDialog(this, "Tên đăng nhập hoặc Mật khẩu không đúng.", "Lỗi đăng nhập",
-					JOptionPane.ERROR_MESSAGE);
-			// Xóa trường mật khẩu để nhập lại
+				JOptionPane.ERROR_MESSAGE);
 			txtMatKhau.setText("");
-			addPlaceholder(txtMatKhau, placeholderMK); // Đặt lại placeholder
+			addPlaceholder(txtMatKhau, placeholderMK);
+			return;
+		    }
+		} catch (Exception ex) {
+		    ex.printStackTrace();
+		    JOptionPane.showMessageDialog(this, "Không thể kết nối đến Server: " + ex.getMessage(), "Lỗi",
+			    JOptionPane.ERROR_MESSAGE);
+		    return;
 		}
 	}
 

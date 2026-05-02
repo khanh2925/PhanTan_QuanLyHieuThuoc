@@ -22,12 +22,6 @@ public class KhuyenMaiServiceImpl implements KhuyenMaiService {
         this.chiTietKhuyenMaiDao = new ChiTietKhuyenMaiSanPhamDaoImpl();
     }
 
-    public KhuyenMaiServiceImpl(KhuyenMaiDao khuyenMaiDao,
-                                ChiTietKhuyenMaiSanPhamDao chiTietKhuyenMaiDao) {
-        this.khuyenMaiDao = khuyenMaiDao;
-        this.chiTietKhuyenMaiDao = chiTietKhuyenMaiDao;
-    }
-
     @Override
     public List<KhuyenMaiDTO> layTatCaKhuyenMai() {
         return Mapper.mapList(khuyenMaiDao.layTatCaKhuyenMai(), KhuyenMaiDTO.class);
@@ -54,6 +48,24 @@ public class KhuyenMaiServiceImpl implements KhuyenMaiService {
     }
 
     @Override
+    public boolean themChiTietKhuyenMaiSanPham(String maKM, String maSanPham) {
+        KhuyenMai km = khuyenMaiDao.timKhuyenMaiTheoMa(maKM);
+        if (km == null || km.isKhuyenMaiHoaDon()) return false;
+        List<entity.ChiTietKhuyenMaiSanPham> ds = chiTietKhuyenMaiDao.timKiemChiTietKhuyenMaiSanPhamBangMa(maKM);
+        for (entity.ChiTietKhuyenMaiSanPham ct : ds) {
+            if (ct.getSanPham() != null && maSanPham.equals(ct.getSanPham().getMaSanPham())) return true;
+        }
+        entity.SanPham sp = new dao.iml.SanPhamDaoImpl().timSanPhamTheoMa(maSanPham);
+        if (sp == null) return false;
+        return chiTietKhuyenMaiDao.themChiTietKhuyenMaiSanPham(new entity.ChiTietKhuyenMaiSanPham(sp, km));
+    }
+
+    @Override
+    public boolean xoaChiTietKhuyenMaiSanPham(String maKM, String maSanPham) {
+        return chiTietKhuyenMaiDao.xoaChiTietKhuyenMaiSanPham(maKM, maSanPham);
+    }
+
+    @Override
     public boolean capNhatKhuyenMai(KhuyenMaiDTO km) {
         return khuyenMaiDao.capNhatKhuyenMai(Mapper.map(km, KhuyenMai.class));
     }
@@ -70,6 +82,6 @@ public class KhuyenMaiServiceImpl implements KhuyenMaiService {
 
     @Override
     public void refreshCache() {
-        // KhuyenMaiDao khong co cache rieng.
+        // no-op
     }
 }

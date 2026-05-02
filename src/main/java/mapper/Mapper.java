@@ -1,5 +1,7 @@
 package mapper;
 
+import dto.BangGiaDTO;
+import dto.ChiTietBangGiaDTO;
 import dto.ChiTietHoaDonCreateUpdateDTO;
 import dto.ChiTietHoaDonDTO;
 import dto.ChiTietKhuyenMaiSanPhamDTO;
@@ -20,6 +22,8 @@ import entity.DonViTinh;
 import entity.DuongDung;
 import entity.HinhThucKM;
 import entity.HoaDon;
+import entity.BangGia;
+import entity.ChiTietBangGia;
 import entity.KhachHang;
 import entity.KhuyenMai;
 import entity.LoSanPham;
@@ -79,27 +83,19 @@ public final class Mapper {
     }
 
     private static Object mapKnownType(Object source, Class<?> targetClass) {
-        if (targetClass == KhachHangDTO.class && source instanceof KhachHang khachHang) return KhachHangDTO.fromEntity(khachHang);
+        // DTO → Entity mappings (Entity → DTO removed to comply with DTO standards)
         if (targetClass == KhachHang.class && source instanceof KhachHangDTO dto) return toKhachHang(dto);
-        if (targetClass == NhanVienDTO.class && source instanceof NhanVien nhanVien) return NhanVienDTO.fromEntity(nhanVien);
         if (targetClass == NhanVien.class && source instanceof NhanVienDTO dto) return toNhanVien(dto);
-        if (targetClass == SanPhamDTO.class && source instanceof SanPham sanPham) return SanPhamDTO.fromEntity(sanPham);
         if (targetClass == SanPham.class && source instanceof SanPhamDTO dto) return toSanPham(dto);
-        if (targetClass == HoaDonDTO.class && source instanceof HoaDon hoaDon) return HoaDonDTO.fromEntity(hoaDon);
         if (targetClass == HoaDon.class && source instanceof HoaDonCreateUpdateDTO dto) return toHoaDon(dto);
-        if (targetClass == ChiTietHoaDonDTO.class && source instanceof ChiTietHoaDon chiTietHoaDon) return ChiTietHoaDonDTO.fromEntity(chiTietHoaDon);
-        if (targetClass == LoSanPhamDTO.class && source instanceof LoSanPham loSanPham) return LoSanPhamDTO.fromEntity(loSanPham);
         if (targetClass == LoSanPham.class && source instanceof LoSanPhamDTO dto) return toLoSanPham(dto);
-        if (targetClass == KhuyenMaiDTO.class && source instanceof KhuyenMai khuyenMai) return KhuyenMaiDTO.fromEntity(khuyenMai);
         if (targetClass == KhuyenMai.class && source instanceof KhuyenMaiDTO dto) return toKhuyenMai(dto);
-        if (targetClass == ChiTietKhuyenMaiSanPhamDTO.class && source instanceof ChiTietKhuyenMaiSanPham chiTiet) return ChiTietKhuyenMaiSanPhamDTO.fromEntity(chiTiet);
         if (targetClass == ChiTietKhuyenMaiSanPham.class && source instanceof ChiTietKhuyenMaiSanPhamDTO dto) return toChiTietKhuyenMaiSanPham(dto);
-        if (targetClass == PhieuNhapDTO.class && source instanceof PhieuNhap phieuNhap) return PhieuNhapDTO.fromEntity(phieuNhap);
         if (targetClass == PhieuNhap.class && source instanceof PhieuNhapDTO dto) return toPhieuNhap(dto);
-        if (targetClass == ChiTietPhieuNhapDTO.class && source instanceof ChiTietPhieuNhap chiTietPhieuNhap) return ChiTietPhieuNhapDTO.fromEntity(chiTietPhieuNhap);
         if (targetClass == ChiTietPhieuNhap.class && source instanceof ChiTietPhieuNhapDTO dto) return toChiTietPhieuNhap(dto, null);
-        if (targetClass == TaiKhoanDTO.class && source instanceof TaiKhoan taiKhoan) return TaiKhoanDTO.fromEntity(taiKhoan);
         if (targetClass == TaiKhoan.class && source instanceof TaiKhoanDTO dto) return toTaiKhoan(dto);
+        if (targetClass == BangGia.class && source instanceof BangGiaDTO dto) return toBangGia(dto);
+        if (targetClass == ChiTietBangGia.class && source instanceof ChiTietBangGiaDTO dto) return toChiTietBangGia(dto);
         return null;
     }
 
@@ -178,6 +174,29 @@ public final class Mapper {
         khuyenMai.setDieuKienApDungHoaDon(dto.getDieuKienApDungHoaDon());
         khuyenMai.setSoLuongKhuyenMai(dto.getSoLuongKhuyenMai());
         return khuyenMai;
+    }
+
+    private static BangGia toBangGia(BangGiaDTO dto) {
+        BangGia bangGia = new BangGia();
+        bangGia.setMaBangGia(dto.getMaBangGia());
+        if (hasText(dto.getMaNhanVien())) {
+            bangGia.setNhanVien(new NhanVien(dto.getMaNhanVien()));
+        }
+        bangGia.setTenBangGia(dto.getTenBangGia());
+        bangGia.setNgayApDung(dto.getNgayApDung());
+        bangGia.setHoatDong(dto.isHoatDong());
+        return bangGia;
+    }
+
+    private static ChiTietBangGia toChiTietBangGia(ChiTietBangGiaDTO dto) {
+        ChiTietBangGia ct = new ChiTietBangGia();
+        BangGia bg = new BangGia();
+        bg.setMaBangGia(dto.getMaBangGia());
+        ct.setBangGia(bg);
+        ct.setGiaTu(dto.getGiaTu());
+        ct.setGiaDen(dto.getGiaDen());
+        ct.setTiLe(dto.getTiLe());
+        return ct;
     }
 
     private static ChiTietKhuyenMaiSanPham toChiTietKhuyenMaiSanPham(ChiTietKhuyenMaiSanPhamDTO dto) {

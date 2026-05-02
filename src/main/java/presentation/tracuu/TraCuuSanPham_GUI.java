@@ -1,7 +1,5 @@
 package presentation.tracuu;
 
-import entity.LoaiSanPham;
-
 import java.awt.*;
 import java.awt.Color;
 import java.awt.Font;
@@ -32,9 +30,10 @@ import dao.iml.LoSanPhamDaoImpl;
 import dao.iml.QuyCachDongGoiDaoImpl;
 import dao.iml.SanPhamDaoImpl;
 import entity.LoSanPham;
+import entity.LoaiSanPham;
 import entity.QuyCachDongGoi;
 import entity.SanPham;
-import entity.LoaiSanPham;
+import network.ClientService;
 
 /**
  * @author Quốc Khánh
@@ -77,6 +76,7 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
     private SanPhamDaoImpl sanPhamDao;
     private LoSanPhamDaoImpl loSanPhamDao;
     private QuyCachDongGoiDaoImpl quyCachDao;
+    private ClientService svc;
 
     // Cache Data
     private List<SanPham> dsSanPhamHienTai;
@@ -90,6 +90,8 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
         loSanPhamDao = new LoSanPhamDaoImpl();
         quyCachDao = new QuyCachDongGoiDaoImpl();
         dsSanPhamHienTai = new ArrayList<>();
+        // Client service for socket-backed queries (incremental migration)
+        svc = new ClientService();
 
         // 2. Dựng giao diện
         initialize();
@@ -506,14 +508,15 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
             txtTimThuoc.requestFocusInWindow();
             txtTimThuoc.selectAll();
         });
-        // Refresh cache để lấy dữ liệu mới nhất từ database
-        sanPhamDao.refreshCache();
-        sanPhamDao.refreshCacheBangGia();
+
+        dsSanPhamHienTai = layDanhSachSanPham();
+        if (dsSanPhamHienTai == null) {
+            dsSanPhamHienTai = new ArrayList<>();
+        }
 
         PlaceholderSupport.addPlaceholder(txtTimThuoc, "Tìm theo mã SP, số đăng ký... (F1 / Ctrl+F)");
         cbLoai.setSelectedIndex(0);
         cbTrangThai.setSelectedIndex(0);
-        dsSanPhamHienTai = sanPhamDao.layTatCaSanPham();
         renderBangSanPham(dsSanPhamHienTai);
 
         modelLoSanPham.setRowCount(0);
@@ -568,11 +571,9 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
         if (tuKhoa.contains("Nhập tên thuốc"))
             tuKhoa = "";
 
-        List<SanPham> ketQuaTimKiem;
-        if (!tuKhoa.isEmpty()) {
-            ketQuaTimKiem = sanPhamDao.timKiemSanPham(tuKhoa);
-        } else {
-            ketQuaTimKiem = sanPhamDao.layTatCaSanPham();
+        List<SanPham> ketQuaTimKiem = tuKhoa.isEmpty() ? layDanhSachSanPham() : timKiemSanPham(tuKhoa);
+        if (ketQuaTimKiem == null) {
+            ketQuaTimKiem = new ArrayList<>();
         }
 
         String loaiChon = (String) cbLoai.getSelectedItem();
@@ -584,7 +585,8 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
                     (sp.getLoaiSanPham() != null && sp.getLoaiSanPham().getTenLoai().equals(loaiChon));
 
             boolean passTrangThai = "Tất cả".equals(trangThaiChon) ||
-                    (sp.isHoatDong() == "Đang bán".equals(trangThaiChon));
+                    (sp.isHoatDong() && "Đang bán".equals(trangThaiChon)) ||
+                    (!sp.isHoatDong() && "Ngừng kinh doanh".equals(trangThaiChon));
 
             return passLoai && passTrangThai;
         }).collect(Collectors.toList());
@@ -606,12 +608,8 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
         int stt = 1;
         for (SanPham sp : list) {
             String trangThaiText = sp.isHoatDong() ? "Đang bán" : "Ngừng kinh doanh";
-
-            // --- SỬA ĐỔI 3: Hiển thị getTenLoai() lên bảng ---
             String loaiText = sp.getLoaiSanPham() != null ? sp.getLoaiSanPham().getTenLoai() : "";
-
             String duongDungText = sp.getDuongDung() != null ? sp.getDuongDung().getTenDuongDung() : "Không xác định";
-
             double giaNhapGoc = sp.getGiaNhap();
 
             modelSanPham.addRow(new Object[] {
@@ -628,6 +626,74 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
         }
     }
 
+    /**
+     * Lấy danh sách tất cả sản phẩm từ socket hoặc DAO
+     */
+    private List<SanPham> layDanhSachSanPham() {
+        try {
+            java.util.List<?> all = svc.getAllSanPham();
+            if (all != null && !all.isEmpty() && all.get(0) instanceof SanPham) {
+                List<SanPham> result = new java.util.ArrayList<>();
+                for (Object o : all) result.add((SanPham) o);
+                return result;
+            }
+        } catch (Exception ex) {
+            // ignore and fallback to DAO
+        }
+        return sanPhamDao.layTatCaSanPham();
+    }
+
+    /**
+     * Tìm kiếm sản phẩm theo từ khóa
+     */
+    private List<SanPham> timKiemSanPham(String tuKhoa) {
+        try {
+            java.util.List<?> results = svc.searchProducts(tuKhoa);
+            if (results != null && !results.isEmpty() && results.get(0) instanceof SanPham) {
+                List<SanPham> result = new java.util.ArrayList<>();
+                for (Object o : results) result.add((SanPham) o);
+                return result;
+            }
+        } catch (Exception ex) {
+            // ignore and fallback to DAO
+        }
+        return sanPhamDao.timKiemSanPham(tuKhoa);
+    }
+
+    /**
+     * Lấy danh sách lô theo mã sản phẩm
+     */
+    private List<LoSanPham> layDanhSachLoTheoSanPham(String maSanPham) {
+        try {
+            java.util.List<?> lots = svc.getLotsByProduct(maSanPham);
+            if (lots != null && !lots.isEmpty() && lots.get(0) instanceof LoSanPham) {
+                List<LoSanPham> result = new java.util.ArrayList<>();
+                for (Object o : lots) result.add((LoSanPham) o);
+                return result;
+            }
+        } catch (Exception ex) {
+            // ignore and fallback to DAO
+        }
+        return loSanPhamDao.layDanhSachLoTheoMaSanPham(maSanPham);
+    }
+
+    /**
+     * Lấy danh sách quy cách theo mã sản phẩm
+     */
+    private List<QuyCachDongGoi> layDanhSachQuyCachTheoSanPham(String maSanPham) {
+        try {
+            java.util.List<?> qcs = svc.getPackagingRulesByProduct(maSanPham);
+            if (qcs != null && !qcs.isEmpty() && qcs.get(0) instanceof QuyCachDongGoi) {
+                List<QuyCachDongGoi> result = new java.util.ArrayList<>();
+                for (Object o : qcs) result.add((QuyCachDongGoi) o);
+                return result;
+            }
+        } catch (Exception ex) {
+            // ignore and fallback to DAO
+        }
+        return quyCachDao.layDanhSachQuyCachTheoSanPham(maSanPham);
+    }
+
     private void loadChiTietSanPham(SanPham sp) {
         modelLoSanPham.setRowCount(0);
         modelQuyCach.setRowCount(0);
@@ -635,42 +701,36 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
         String maSP = sp.getMaSanPham();
         double giaBanGoc = sp.getGiaBan();
 
-        // --- TAB 1: LÔ HÀNG ---
-        List<LoSanPham> listLo = loSanPhamDao.layDanhSachLoTheoMaSanPham(maSP);
+        List<LoSanPham> listLo = layDanhSachLoTheoSanPham(maSP);
+        if (listLo == null) listLo = new ArrayList<>();
         int sttLo = 1;
-        if (listLo != null) {
-            for (LoSanPham lo : listLo) {
-                modelLoSanPham.addRow(new Object[] {
-                        sttLo++,
-                        lo.getMaLo(),
-                        dtf.format(lo.getHanSuDung()),
-                        lo.getSoLuongTon()
-                });
-            }
+        for (LoSanPham lo : listLo) {
+            modelLoSanPham.addRow(new Object[] {
+                    sttLo++,
+                    lo.getMaLo(),
+                    dtf.format(lo.getHanSuDung()),
+                    lo.getSoLuongTon()
+            });
         }
 
-        // --- TAB 2: QUY CÁCH ---
-        List<QuyCachDongGoi> listQC = quyCachDao.layDanhSachQuyCachTheoSanPham(maSP);
+        List<QuyCachDongGoi> listQC = layDanhSachQuyCachTheoSanPham(maSP);
+        if (listQC == null) listQC = new ArrayList<>();
         int sttQC = 1;
-        if (listQC != null) {
-            for (QuyCachDongGoi qc : listQC) {
-                String tenDVT = qc.getDonViTinh() != null ? qc.getDonViTinh().getTenDonViTinh() : "N/A";
+        for (QuyCachDongGoi qc : listQC) {
+            String tenDVT = qc.getDonViTinh() != null ? qc.getDonViTinh().getTenDonViTinh() : "N/A";
+            double giaBanQuyCach = giaBanGoc * qc.getHeSoQuyDoi() * (1 - qc.getTiLeGiam());
+            String loaiDVT = qc.isDonViGoc() ? "Đơn vị gốc" : "Quy đổi";
+            String tiLeGiamText = (int) (qc.getTiLeGiam() * 100) + "%";
 
-                double giaBanQuyCach = giaBanGoc * qc.getHeSoQuyDoi() * (1 - qc.getTiLeGiam());
-
-                String loaiDVT = qc.isDonViGoc() ? "Đơn vị gốc" : "Quy đổi";
-                String tiLeGiamText = (int) (qc.getTiLeGiam() * 100) + "%";
-
-                modelQuyCach.addRow(new Object[] {
-                        sttQC++,
-                        qc.getMaQuyCach(),
-                        tenDVT,
-                        qc.getHeSoQuyDoi(),
-                        df.format(giaBanQuyCach),
-                        tiLeGiamText,
-                        loaiDVT
-                });
-            }
+            modelQuyCach.addRow(new Object[] {
+                    sttQC++,
+                    qc.getMaQuyCach(),
+                    tenDVT,
+                    qc.getHeSoQuyDoi(),
+                    df.format(giaBanQuyCach),
+                    tiLeGiamText,
+                    loaiDVT
+            });
         }
     }
 
@@ -819,19 +879,18 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
                 String maSP = sp.getMaSanPham();
                 String tenSP = sp.getTenSanPham();
 
-                List<LoSanPham> listLo = loSanPhamDao.layDanhSachLoTheoMaSanPham(maSP);
-                if (listLo != null && !listLo.isEmpty()) {
-                    for (LoSanPham lo : listLo) {
-                        Row dataRow = sheetLo.createRow(loRowIdx++);
-                        dataRow.createCell(0).setCellValue(maSP);
-                        dataRow.createCell(1).setCellValue(tenSP);
-                        dataRow.createCell(2).setCellValue(lo.getMaLo());
-                        dataRow.createCell(3).setCellValue(dtf.format(lo.getHanSuDung()));
-                        dataRow.createCell(4).setCellValue(lo.getSoLuongTon());
+                List<LoSanPham> listLo = layDanhSachLoTheoSanPham(maSP);
+                if (listLo == null) listLo = new ArrayList<>();
+                for (LoSanPham lo : listLo) {
+                    Row dataRow = sheetLo.createRow(loRowIdx++);
+                    dataRow.createCell(0).setCellValue(maSP);
+                    dataRow.createCell(1).setCellValue(tenSP);
+                    dataRow.createCell(2).setCellValue(lo.getMaLo());
+                    dataRow.createCell(3).setCellValue(dtf.format(lo.getHanSuDung()));
+                    dataRow.createCell(4).setCellValue(lo.getSoLuongTon());
 
-                        for (int col = 0; col < 5; col++) {
-                            dataRow.getCell(col).setCellStyle(dataStyle);
-                        }
+                    for (int col = 0; col < 5; col++) {
+                        dataRow.getCell(col).setCellStyle(dataStyle);
                     }
                 }
             }
@@ -861,28 +920,27 @@ public class TraCuuSanPham_GUI extends JPanel implements ActionListener {
                 String tenSP = sp.getTenSanPham();
                 double giaNhap = sp.getGiaNhap(); // Giá nhập gốc - không đổi khi đổi bảng giá
 
-                List<QuyCachDongGoi> listQC = quyCachDao.layDanhSachQuyCachTheoSanPham(maSP);
+                List<QuyCachDongGoi> listQC = layDanhSachQuyCachTheoSanPham(maSP);
+                if (listQC == null) listQC = new ArrayList<>();
 
-                if (listQC != null && !listQC.isEmpty()) {
-                    for (QuyCachDongGoi qc : listQC) {
-                        Row dataRow = sheetQC.createRow(qcRowIdx++);
-                        String tenDVT = qc.getDonViTinh() != null ? qc.getDonViTinh().getTenDonViTinh() : "N/A";
-                        double giaBanQuyCach = giaNhap * qc.getHeSoQuyDoi() * (1 - qc.getTiLeGiam());
-                        String loaiDVT = qc.isDonViGoc() ? "Đơn vị gốc" : "Quy đổi";
-                        String tiLeGiamText = (int) (qc.getTiLeGiam() * 100) + "%";
+                for (QuyCachDongGoi qc : listQC) {
+                    Row dataRow = sheetQC.createRow(qcRowIdx++);
+                    String tenDVT = qc.getDonViTinh() != null ? qc.getDonViTinh().getTenDonViTinh() : "N/A";
+                    double giaBanQuyCach = giaNhap * qc.getHeSoQuyDoi() * (1 - qc.getTiLeGiam());
+                    String loaiDVT = qc.isDonViGoc() ? "Đơn vị gốc" : "Quy đổi";
+                    String tiLeGiamText = (int) (qc.getTiLeGiam() * 100) + "%";
 
-                        dataRow.createCell(0).setCellValue(maSP);
-                        dataRow.createCell(1).setCellValue(tenSP);
-                        dataRow.createCell(2).setCellValue(qc.getMaQuyCach());
-                        dataRow.createCell(3).setCellValue(tenDVT);
-                        dataRow.createCell(4).setCellValue(qc.getHeSoQuyDoi());
-                        dataRow.createCell(5).setCellValue(df.format(giaBanQuyCach));
-                        dataRow.createCell(6).setCellValue(tiLeGiamText);
-                        dataRow.createCell(7).setCellValue(loaiDVT);
+                    dataRow.createCell(0).setCellValue(maSP);
+                    dataRow.createCell(1).setCellValue(tenSP);
+                    dataRow.createCell(2).setCellValue(qc.getMaQuyCach());
+                    dataRow.createCell(3).setCellValue(tenDVT);
+                    dataRow.createCell(4).setCellValue(qc.getHeSoQuyDoi());
+                    dataRow.createCell(5).setCellValue(df.format(giaBanQuyCach));
+                    dataRow.createCell(6).setCellValue(tiLeGiamText);
+                    dataRow.createCell(7).setCellValue(loaiDVT);
 
-                        for (int col = 0; col < 8; col++) {
-                            dataRow.getCell(col).setCellStyle(dataStyle);
-                        }
+                    for (int col = 0; col < 8; col++) {
+                        dataRow.getCell(col).setCellStyle(dataStyle);
                     }
                 }
             }

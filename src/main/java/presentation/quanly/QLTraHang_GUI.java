@@ -5,9 +5,6 @@ package presentation.quanly;
  * @version 2.0 - Rewritten to match QL_HuyHang_GUI structure 100%
  */
 
-
-
-import db.JPAUtil;
 import presentation.component.button.PillButton;
 import presentation.component.input.PlaceholderSupport;
 
@@ -1001,24 +998,7 @@ public class QLTraHang_GUI extends JPanel implements ActionListener, MouseListen
 	 * Cập nhật trạng thái phiếu trả trong database
 	 */
 	private boolean capNhatTrangThaiPhieuTra(String maPT, boolean daDuyet) {
-		jakarta.persistence.EntityManager em = JPAUtil.getEntityManager();
-		jakarta.persistence.EntityTransaction tx = em.getTransaction();
-		try {
-			tx.begin();
-			int result = em.createQuery(
-					"UPDATE PhieuTra p SET p.trangThai = :tt WHERE p.maPhieuTra = :ma")
-					.setParameter("tt", daDuyet)
-					.setParameter("ma", maPT)
-					.executeUpdate();
-			tx.commit();
-			return result > 0;
-		} catch (Exception e) {
-			if (tx.isActive()) tx.rollback();
-			e.printStackTrace();
-			return false;
-		} finally {
-			em.close();
-		}
+		return pt_dao.capNhatTrangThaiPhieuTra(maPT, daDuyet);
 	}
 
 	/**

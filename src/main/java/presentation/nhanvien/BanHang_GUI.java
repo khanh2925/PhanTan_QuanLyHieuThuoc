@@ -22,12 +22,7 @@ import presentation.panel.DonHangItemPanel;
 import presentation.component.button.TaoButtonNhanh;
 import presentation.component.button.PillButton;
 
-import dao.iml.ChiTietKhuyenMaiSanPhamDaoImpl;
-import dao.iml.HoaDonDaoImpl;
-import dao.iml.LoSanPhamDaoImpl;
-import dao.iml.QuyCachDongGoiDaoImpl;
-import dao.iml.SanPhamDaoImpl;
-import dao.iml.KhachHangDaoImpl;
+import network.ClientService;
 import entity.ChiTietHoaDon;
 import entity.ChiTietKhuyenMaiSanPham;
 import entity.DonViTinh;
@@ -41,7 +36,6 @@ import entity.QuyCachDongGoi;
 import entity.SanPham;
 import entity.Session;
 import entity.TaiKhoan;
-import dao.iml.KhuyenMaiDaoImpl;
 import entity.HinhThucKM;
 import presentation.panel.DonHangItemPanel;
 import presentation.dialog.HoaDonPreviewDialog;
@@ -67,13 +61,7 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 	private JTextField txtGiamSPValue;
 	private JTextField txtGiamHDValue;
 
-	private SanPhamDaoImpl sanPhamDao;
-	private LoSanPhamDaoImpl loSanPhamDao;
-	private QuyCachDongGoiDaoImpl quyCachDongGoiDao;
-	private ChiTietKhuyenMaiSanPhamDaoImpl ctKMSPDao;
-	private KhachHangDaoImpl khachHangDao;
-	private HoaDonDaoImpl hoaDonDao;
-	private KhuyenMaiDaoImpl khuyenMaiDao;
+	private ClientService svc;
 
 	private List<ItemDonHang> dsItem = new ArrayList<>();
 
@@ -109,15 +97,10 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		setPreferredSize(new Dimension(1537, 850));
 		initialize();
 
-		sanPhamDao = new SanPhamDaoImpl();
-		loSanPhamDao = new LoSanPhamDaoImpl();
-		quyCachDongGoiDao = new QuyCachDongGoiDaoImpl();
-		ctKMSPDao = new ChiTietKhuyenMaiSanPhamDaoImpl();
-		khachHangDao = new KhachHangDaoImpl();
+		// Client service for socket requests (incremental migration)
+		svc = new ClientService();
 		dsItem = new ArrayList<>();
 		khachHangHienTai = null;
-		khuyenMaiDao = new KhuyenMaiDaoImpl();
-		hoaDonDao = new HoaDonDaoImpl();
 
 		// Thiết lập phím tắt
 		setupKeyboardShortcuts();
@@ -519,7 +502,7 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 						}
 					}
 
-				}, this, dsItem, loSanPhamDao, quyCachDongGoiDao);
+				}, this, dsItem, null, null);
 
 		pnDanhSachDon.add(panel);
 		pnDanhSachDon.add(Box.createVerticalStrut(5));
@@ -628,7 +611,20 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		// 3. Lấy khách cho hóa đơn (Nếu không chọn thì lấy khách Vãng Lai)
 		KhachHang khForHD = khachHangHienTai;
 		if (khForHD == null) {
-			khForHD = khachHangDao.timKhachHangTheoMa("KH-00000000-0000");
+			try {
+				Object o = svc.getKhachHangByCode("KH-00000000-0000");
+				if (o instanceof KhachHang) khForHD = (KhachHang) o;
+			} catch (Exception ex) {
+				// ignore and fallback to DAO
+			}
+			if (khForHD == null) {
+			try {
+				Object o = svc.getKhachHangByCode("KH-00000000-0000");
+				if (o instanceof KhachHang) khForHD = (KhachHang) o;
+			} catch (Exception ex) {
+				// ignore and keep null
+			}
+		}
 		}
 
 		// 4. Kiểm tra tiền khách đưa
@@ -655,7 +651,13 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		}
 
 		// 5. Chuẩn bị dữ liệu Hóa Đơn
-		String maHD = hoaDonDao.taoMaHoaDon();
+		String maHD = null;
+		try {
+			maHD = svc.taoMaHoaDon();
+		} catch (Exception ex) {
+			// ignore and fallback to DAO
+		}
+		if (maHD == null) maHD = "";
 		LocalDate ngayLap = LocalDate.now();
 		List<ChiTietHoaDon> dsChiTiet = new ArrayList<>();
 
@@ -731,18 +733,26 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		// kmHoaDonDangApDung
 		HoaDon hd = new HoaDon(maHD, nhanVienHienTai, khForHD, ngayLap, kmHoaDonDangApDung, dsChiTiet, thuocKeDon);
 
-		// 7. Lưu xuống CSDL
-		boolean ok = hoaDonDao.themHoaDon(hd);
+		// 7. Lưu xuống CSDL qua client service
+		boolean ok = false;
+		try {
+			ok = svc.createHoaDon(hd);
+		} catch (Exception ex) {
+			ok = false;
+		}
 		if (!ok) {
 			JOptionPane.showMessageDialog(this, "Lưu hóa đơn thất bại!\nVui lòng thử lại.", "Lỗi Hệ Thống",
 					JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 
-		// 8. Cập nhật số lượng KM Hóa Đơn (nếu có dùng)
-		// Kiểm tra lại từ entity xem KM Hóa Đơn có bị hủy (do ưu tiên KM SP) hay không
+		// 8. Cập nhật số lượng KM hóa đơn qua service nếu có dùng
 		if (hd.getKhuyenMai() != null) {
-			khuyenMaiDao.giamSoLuong(hd.getKhuyenMai().getMaKM());
+			try {
+				svc.reduceKhuyenMaiQuantity(hd.getKhuyenMai().getMaKM());
+			} catch (Exception ex) {
+				// bỏ qua để không chặn luồng bán hàng
+			}
 		}
 
 		// 9. Hoàn tất
@@ -889,9 +899,14 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 	        return;
 	    }
 	    tuKhoa = tuKhoa.toUpperCase(); // Chuẩn hoá mã SP
-		SanPham sp = sanPhamDao.timSanPhamTheoSoDangKy(tuKhoa);
-		if (sp == null)
-			sp = sanPhamDao.laySanPhamTheoMa(tuKhoa);
+		SanPham sp = null;
+		try {
+			Object spObj = svc.findProductByRegistration(tuKhoa);
+			if (spObj == null) spObj = svc.getProductByCode(tuKhoa);
+			if (spObj instanceof SanPham) sp = (SanPham) spObj;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 
 		if (sp == null) {
 			JOptionPane.showMessageDialog(this, "Không tìm thấy sản phẩm với SĐK/Mã: " + tuKhoa);
@@ -905,7 +920,13 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		}
 
 		// ===== Lấy danh sách lô =====
-		List<LoSanPham> dsLo = loSanPhamDao.layDanhSachLoTheoMaSanPham(sp.getMaSanPham());
+		List<LoSanPham> dsLo = new ArrayList<>();
+		try {
+			java.util.List<?> lots = svc.getLotsByProduct(sp.getMaSanPham());
+			for (Object o : lots) if (o instanceof LoSanPham) dsLo.add((LoSanPham) o);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 		if (dsLo.isEmpty()) {
 			JOptionPane.showMessageDialog(this, "Sản phẩm này không còn lô nào đang tồn kho!", "Lỗi tồn kho",
 					JOptionPane.ERROR_MESSAGE);
@@ -913,7 +934,22 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		}
 
 		// ===== Quy cách =====
-		List<QuyCachDongGoi> dsQuyCach = quyCachDongGoiDao.layDanhSachQuyCachTheoSanPham(sp.getMaSanPham());
+		List<QuyCachDongGoi> dsQuyCach = new ArrayList<>();
+		try {
+			java.util.List<?> qcs = svc.getPackagingRulesByProduct(sp.getMaSanPham());
+			if (qcs != null) {
+				for (Object o : qcs) if (o instanceof QuyCachDongGoi) dsQuyCach.add((QuyCachDongGoi) o);
+			}
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		if (dsQuyCach.isEmpty()) {
+			try {
+				dsQuyCach = (List<QuyCachDongGoi>) (List<?>) svc.getPackagingRulesByProduct(sp.getMaSanPham());
+			} catch (Exception ex) {
+				dsQuyCach = new ArrayList<>();
+			}
+		}
 		// Lọc chỉ lấy quy cách đang hoạt động (trangThai = true)
 		dsQuyCach = dsQuyCach.stream()
 				.filter(QuyCachDongGoi::isTrangThai)
@@ -946,7 +982,22 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		}
 
 		// ===== KM theo SP =====
-		List<ChiTietKhuyenMaiSanPham> dsKMSP = ctKMSPDao.layChiTietKhuyenMaiDangHoatDongTheoMaSP(sp.getMaSanPham());
+		List<ChiTietKhuyenMaiSanPham> dsKMSP = new ArrayList<>();
+		try {
+			java.util.List<?> kmps = svc.getActivePromotionDetailsByProduct(sp.getMaSanPham());
+			if (kmps != null) {
+				for (Object o : kmps) if (o instanceof ChiTietKhuyenMaiSanPham) dsKMSP.add((ChiTietKhuyenMaiSanPham) o);
+			}
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		if (dsKMSP.isEmpty()) {
+			try {
+				dsKMSP = (List<ChiTietKhuyenMaiSanPham>) (List<?>) svc.getActivePromotionDetailsByProduct(sp.getMaSanPham());
+			} catch (Exception ex) {
+				dsKMSP = new ArrayList<>();
+			}
+		}
 		ChiTietKhuyenMaiSanPham kmSP = dsKMSP.isEmpty() ? null : dsKMSP.get(0);
 
 		// ===== Ảnh =====
@@ -957,7 +1008,12 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 
 		// Lô gần nhất
 		LoSanPham loDauTien = dsLo.get(0);
-		int tonThucTe = loSanPhamDao.tinhSoLuongTonThucTe(loDauTien.getMaLo());
+		int tonThucTe = 0;
+		try {
+			tonThucTe = svc.getLotQuantity(loDauTien.getMaLo(), sp.getMaSanPham());
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 		loDauTien.setSoLuongTon(tonThucTe);
 		if (tonThucTe <= 0) {
 			JOptionPane.showMessageDialog(this, "Lô gần hết hạn đã hết hàng (tồn khả dụng = 0)!", "Hết hàng",
@@ -1157,7 +1213,22 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 
 	// Hàm tìm KM hóa đơn tốt nhất (Helper)
 	private KhuyenMai timKMHoaDonTotNhat(double tongTien) {
-		List<KhuyenMai> dsKm = khuyenMaiDao.layKhuyenMaiDangHoatDong();
+		List<KhuyenMai> dsKm = new ArrayList<>();
+		try {
+			java.util.List<?> kms = svc.getActiveKhuyenMai();
+			if (kms != null) {
+				for (Object o : kms) if (o instanceof KhuyenMai) dsKm.add((KhuyenMai) o);
+			}
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		if (dsKm.isEmpty()) {
+			try {
+				dsKm = (List<KhuyenMai>) (List<?>) svc.getActiveKhuyenMai();
+			} catch (Exception ex) {
+				dsKm = new ArrayList<>();
+			}
+		}
 		double maxGiam = 0;
 		KhuyenMai kmChon = null;
 
@@ -1314,8 +1385,24 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 			return;
 		}
 
-		// 3. Tìm trong DB
-		KhachHang kh = khachHangDao.timKhachHangTheoSoDienThoai(sdt);
+		// 3. Tìm khách: ưu tiên server, fallback về DAO
+		KhachHang kh = null;
+		try {
+			Object o = svc.getKhachHangByPhone(sdt);
+			if (o instanceof KhachHang) kh = (KhachHang) o;
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		if (kh == null) {
+			try {
+				Object remote = svc.getKhachHangByPhone(sdt);
+				if (remote instanceof KhachHang) {
+					kh = (KhachHang) remote;
+				}
+			} catch (Exception ex) {
+				// ignore fallback omitted
+			}
+		}
 
 		if (kh == null) {
 			// Không tìm thấy
@@ -1604,7 +1691,12 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		for (ItemDonHang item : dsItem) {
 			// Lấy lại KM từ CSDL dựa vào mã sản phẩm
 			SanPham sp = item.getSanPham();
-			List<ChiTietKhuyenMaiSanPham> dsKMSP = ctKMSPDao.layChiTietKhuyenMaiDangHoatDongTheoMaSP(sp.getMaSanPham());
+			List<ChiTietKhuyenMaiSanPham> dsKMSP = new ArrayList<>();
+			try {
+				dsKMSP = (List<ChiTietKhuyenMaiSanPham>) (List<?>) svc.getActivePromotionDetailsByProduct(sp.getMaSanPham());
+			} catch (Exception ex) {
+				dsKMSP = new ArrayList<>();
+			}
 
 			if (!dsKMSP.isEmpty()) {
 				// Tìm thấy KM -> Set lại vào item

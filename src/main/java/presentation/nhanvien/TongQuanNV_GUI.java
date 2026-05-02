@@ -1,9 +1,6 @@
 package presentation.nhanvien;
-import dao.ThongKeDao.*;
 
 /**
-
- *
  * Mô tả: Dashboard tổng quan cho nghiệp vụ quản lý hiệu thuốc
  * - 6 KPI Cards (2 hàng x 3 cột):
  *   + Lợi nhuận của ngày hiện tại
@@ -29,16 +26,10 @@ import java.util.Map;
 import presentation.component.border.RoundedBorder;
 import presentation.component.chart.BieuDoCotJFreeChart;
 import presentation.component.chart.DuLieuBieuDoCot;
-import dao.iml.ChiTietHoaDonDaoImpl;
-import dao.iml.HoaDonDaoImpl;
-import dao.iml.LoSanPhamDaoImpl;
-import dao.iml.ThongKeDaoImpl;
-import dao.iml.ThongKeDaoImpl;
 import entity.LoSanPham;
 import entity.Session;
 import entity.LoaiSanPham;
-import dao.iml.PhieuTraDaoImpl;
-import dao.iml.PhieuHuyDaoImpl;
+import network.ClientService;
 
 public class TongQuanNV_GUI extends JPanel implements ActionListener, MouseListener {
 
@@ -61,15 +52,7 @@ public class TongQuanNV_GUI extends JPanel implements ActionListener, MouseListe
 	private JPanel pnChartArea;
 	private BieuDoCotJFreeChart bieuDoCot;
 
-	// DAOs
-	@SuppressWarnings("unused")
-	private HoaDonDaoImpl hoaDonDAO;
-	private ThongKeDaoImpl thongKeDAO;
-	private PhieuTraDaoImpl phieuTraDAO;
-	private PhieuHuyDaoImpl phieuHuyDAO;
-	@SuppressWarnings("unused")
-	private ChiTietHoaDonDaoImpl chiTietHoaDonDAO;
-	private LoSanPhamDaoImpl loSanPhamDao;
+	private ClientService svc;
 
 	// Main GUI reference để chuyển card
 	@SuppressWarnings("unused")
@@ -89,13 +72,7 @@ public class TongQuanNV_GUI extends JPanel implements ActionListener, MouseListe
 		this.mainGUI = mainGUI;
 		this.setPreferredSize(new Dimension(1537, 850));
 
-		// Khởi tạo DAOs
-		hoaDonDAO = new HoaDonDaoImpl();
-		thongKeDAO = new ThongKeDaoImpl();
-		phieuTraDAO = new PhieuTraDaoImpl();
-		phieuHuyDAO = new PhieuHuyDaoImpl();
-		chiTietHoaDonDAO = new ChiTietHoaDonDaoImpl();
-		loSanPhamDao = new LoSanPhamDaoImpl();
+		svc = new ClientService();
 
 		initialize();
 		// Load dữ liệu thật từ database
@@ -245,7 +222,34 @@ public class TongQuanNV_GUI extends JPanel implements ActionListener, MouseListe
 	private void loadChartLoaiHSD() {
 		bieuDoCot.xoaToanBoDuLieu();
 
-		Map<LoaiSanPham, Integer> data = loSanPhamDao.thongKeSoLoDaHetHanTheoHSDTheoLoai();
+		Map<LoaiSanPham, Integer> data = null;
+		try {
+			java.util.Map<?, ?> raw = svc.getExpiredLotCountByCategory();
+			if (raw != null && !raw.isEmpty()) {
+				data = new java.util.LinkedHashMap<>();
+				for (java.util.Map.Entry<?, ?> entry : raw.entrySet()) {
+					if (entry.getKey() instanceof LoaiSanPham && entry.getValue() instanceof Number) {
+						data.put((LoaiSanPham) entry.getKey(), ((Number) entry.getValue()).intValue());
+					}
+				}
+			}
+		} catch (Exception ex) {
+			// ignore and fallback
+		}
+		if (data == null || data.isEmpty()) {
+			try {
+				Object raw = svc.getExpiredLotCountByCategory();
+				if (raw instanceof Map<?, ?> map && !map.isEmpty()) {
+					data = new java.util.LinkedHashMap<>();
+					for (Map.Entry<?, ?> entry : map.entrySet()) {
+						if (entry.getKey() instanceof LoaiSanPham && entry.getValue() instanceof Number) {
+							data.put((LoaiSanPham) entry.getKey(), ((Number) entry.getValue()).intValue());
+						}
+					}
+				}
+			} catch (Exception ignored) {
+			}
+		}
 
 		int max = 0;
 
@@ -268,38 +272,80 @@ public class TongQuanNV_GUI extends JPanel implements ActionListener, MouseListe
 		bieuDoCot.setDaiTrucY(0, max + 3);
 	}
 	
+	private int getIntField(Object obj, String field) {
+		try {
+			if (obj == null) return 0;
+			java.lang.reflect.Field f = obj.getClass().getDeclaredField(field);
+			f.setAccessible(true);
+			Object v = f.get(obj);
+			return v instanceof Number n ? n.intValue() : 0;
+		} catch (Exception ex) {
+			return 0;
+		}
+	}
+
+	private double getDoubleField(Object obj, String field) {
+		try {
+			if (obj == null) return 0d;
+			java.lang.reflect.Field f = obj.getClass().getDeclaredField(field);
+			f.setAccessible(true);
+			Object v = f.get(obj);
+			return v instanceof Number n ? n.doubleValue() : 0d;
+		} catch (Exception ex) {
+			return 0d;
+		}
+	}
+	
 	/**
 	 * Load dữ liệu thật từ database
 	 */
 	private void loadRealData() {
 
 		try {
-			
-			ThongKeHoaDonNgay tk = thongKeDAO.thongKeHoaDonHomNayCuaNhanVien(maNV);
-			
-					
-			// 1. số đơn hôm nay
-			int soHoaDon = tk.getSoHoaDon();
+			Object tk = svc.getThongKeHoaDonHomNayCuaNhanVien(maNV);
+			int soHoaDon = getIntField(tk, "soHoaDon");
+			double tongTienBanHang = getDoubleField(tk, "tongTien");
 			txtSoDon.setText(String.valueOf(soHoaDon));
-			
-			// 2. tổng tiền bán hàng hôm nay
-			double tongTienBanHang = tk.getTongTien();
 			txtTongTienDaBan.setText(formatter.format(tongTienBanHang) + " ₫");
 
 			// 3. số phiếu trả đã tạo hôm nay
-			int soPhieuTra = phieuTraDAO.demSoPhieuTraHomNayCuaNhanVien(maNV);
+			int soPhieuTra = 0;
+			try {
+				soPhieuTra = svc.demSoPhieuTraHomNayCuaNhanVien(maNV);
+			} catch (Exception ex) {
+				soPhieuTra = 0;
+			}
 			txtSoPhieuTraDaTao.setText(String.valueOf(soPhieuTra));
 
-			// 4. số SP đã bán trong hôm nay
-			List<LoSanPham> dsLoSPHetHan = loSanPhamDao.layDanhSachLoSPDaHetHan();			
+			// 4. số lô SP đã hết hạn
+			List<LoSanPham> dsLoSPHetHan = new java.util.ArrayList<>();
+			try {
+				java.util.List<?> lots = svc.getLotsExpired();
+				if (lots != null) {
+					for (Object o : lots) if (o instanceof LoSanPham) dsLoSPHetHan.add((LoSanPham) o);
+				}
+			} catch (Exception ex) {
+				// ignore and fallback
+			}
 			txtLoSPDaHetHan.setText(String.valueOf(dsLoSPHetHan.size()));
 
 			// 5. số lô sp gần hết hạn
-			int soLoToiHanSD = loSanPhamDao.layDanhSachLoSPToiHanSuDung().size();
+			int soLoToiHanSD = 0;
+			try {
+				java.util.List<?> lots = svc.getLotsExpiring();
+				soLoToiHanSD = lots != null ? lots.size() : 0;
+			} catch (Exception ex) {
+				soLoToiHanSD = 0;
+			}
 			txtLoSPSapHetHan.setText(String.valueOf(soLoToiHanSD));
 
 			// 6. số phiếu hủy đã tạo hôm nay
-			int soPhieuHuy = phieuHuyDAO.demSoPhieuHuyHomNayCuaNhanVien(maNV);
+			int soPhieuHuy = 0;
+			try {
+				soPhieuHuy = svc.demSoPhieuHuyHomNayCuaNhanVien(maNV);
+			} catch (Exception ex) {
+				soPhieuHuy = 0;
+			}
 			txtSoPhieuHuyDaTao.setText(String.valueOf(soPhieuHuy));
 
 			

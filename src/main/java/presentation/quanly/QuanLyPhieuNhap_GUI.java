@@ -56,6 +56,7 @@ import entity.Session;
 import entity.TaiKhoan;
 import presentation.dialog.ChonLo_Dialog;
 import presentation.dialog.ThemLo_Dialog;
+import network.ClientService;
 
 @SuppressWarnings("serial")
 public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, MouseListener {
@@ -78,6 +79,7 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
     private NhaCungCapDaoImpl nhaCungCapDAO;
     private DonViTinhDaoImpl donViTinhDAO;
     private QuyCachDongGoiDaoImpl quyCachDAO; 
+    private ClientService svc;
 
     // ===== Formatting =====
     private final DecimalFormat df = new DecimalFormat("#,###");
@@ -107,6 +109,7 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         nhaCungCapDAO = new NhaCungCapDaoImpl();
         donViTinhDAO = new DonViTinhDaoImpl();
         quyCachDAO = new QuyCachDongGoiDaoImpl(); 
+        svc = new ClientService();
 
         if (this.nhanVienDangNhap == null) {
             JOptionPane.showMessageDialog(this, "Lỗi: Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!", "Lỗi nghiêm trọng", JOptionPane.ERROR_MESSAGE);
@@ -153,6 +156,7 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         nhaCungCapDAO = new NhaCungCapDaoImpl();
         donViTinhDAO = new DonViTinhDaoImpl();
         quyCachDAO = new QuyCachDongGoiDaoImpl(); 
+        svc = new ClientService();
 
         try {
             String maLoDauTien = loSanPhamDAO.taoMaLoTuDong();
@@ -860,7 +864,14 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
             return;
         }
         
-        NhaCungCap ncc = nhaCungCapDAO.timNhaCungCapTheoMaHoacSDT(keyword);
+        NhaCungCap ncc = null;
+        try {
+            Object o = svc.getNhaCungCapByCodeOrPhone(keyword);
+            if (o instanceof NhaCungCap) ncc = (NhaCungCap) o;
+        } catch (Exception ex) {
+            // ignore and fallback
+        }
+        if (ncc == null) ncc = nhaCungCapDAO.timNhaCungCapTheoMaHoacSDT(keyword);
         
         if (ncc == null) {
             JOptionPane.showMessageDialog(this, 
@@ -922,7 +933,14 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
             return;
         }
 
-        SanPham sp = sanPhamDAO.laySanPhamTheoMa(maSP);
+        SanPham sp = null;
+        try {
+            Object o = svc.getProductByCode(maSP);
+            if (o instanceof SanPham) sp = (SanPham) o;
+        } catch (Exception ex) {
+            // ignore and fallback
+        }
+        if (sp == null) sp = sanPhamDAO.laySanPhamTheoMa(maSP);
         if (sp == null) {
             JOptionPane.showMessageDialog(this, "Không tìm thấy sản phẩm với mã: " + maSP, "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtSearch.selectAll();
@@ -931,8 +949,18 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
 
         String maLoHienThi = String.format("LO-%06d", this.soLoTiepTheo);
         
-        ArrayList<QuyCachDongGoi> dsQuyCach = quyCachDAO.layDanhSachQuyCachTheoSanPham(sp.getMaSanPham());
-        QuyCachDongGoi qc_goc = quyCachDAO.timQuyCachGocTheoSanPham(sp.getMaSanPham());
+        ArrayList<QuyCachDongGoi> dsQuyCach = new ArrayList<>();
+        try {
+            java.util.List<?> qcs = svc.getPackagingRulesByProduct(sp.getMaSanPham());
+            if (qcs != null) {
+                for (Object o : qcs) if (o instanceof QuyCachDongGoi) dsQuyCach.add((QuyCachDongGoi) o);
+            }
+        } catch (Exception ex) {
+            // ignore and fallback
+        }
+        if (dsQuyCach.isEmpty()) dsQuyCach = quyCachDAO.layDanhSachQuyCachTheoSanPham(sp.getMaSanPham());
+        QuyCachDongGoi qc_goc = dsQuyCach.stream().filter(QuyCachDongGoi::isDonViGoc).findFirst().orElse(null);
+        if (qc_goc == null) qc_goc = quyCachDAO.timQuyCachGocTheoSanPham(sp.getMaSanPham());
 
         if (dsQuyCach == null || dsQuyCach.isEmpty() || qc_goc == null) {
             JOptionPane.showMessageDialog(this, "Sản phẩm '" + sp.getTenSanPham() + "' chưa được cấu hình Quy Cách Đóng Gói (hoặc thiếu Đơn Vị Gốc).\nVui lòng kiểm tra trong Quản lý sản phẩm.", "Lỗi cấu hình", JOptionPane.ERROR_MESSAGE);
@@ -1032,7 +1060,14 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         }
 
         PhieuNhap phieuNhapMoi = new PhieuNhap();
-        phieuNhapMoi.setMaPhieuNhap(phieuNhapDAO.taoMaPhieuNhap());
+        String maPN = null;
+        try {
+            maPN = svc.taoMaPhieuNhap();
+        } catch (Exception ex) {
+            // ignore and fallback
+        }
+        if (maPN == null) maPN = phieuNhapDAO.taoMaPhieuNhap();
+        phieuNhapMoi.setMaPhieuNhap(maPN);
         phieuNhapMoi.setNgayNhap(LocalDate.now());
         phieuNhapMoi.setNhanVien(nhanVienDangNhap);
         phieuNhapMoi.setNhaCungCap(nhaCungCapDaChon);
@@ -1047,7 +1082,13 @@ public class QuanLyPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         }
 
         phieuNhapMoi.setChiTietPhieuNhapList(dsChiTiet);
-        boolean success = phieuNhapDAO.themPhieuNhap(phieuNhapMoi);
+        boolean success = false;
+        try {
+            success = svc.createPhieuNhap(phieuNhapMoi);
+        } catch (Exception ex) {
+            // ignore and fallback
+        }
+        if (!success) success = phieuNhapDAO.themPhieuNhap(phieuNhapMoi);
 
         if (success) {
             hienThiHoaDon(phieuNhapMoi);
