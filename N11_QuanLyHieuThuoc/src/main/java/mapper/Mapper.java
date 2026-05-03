@@ -107,6 +107,8 @@ public final class Mapper {
         if (targetClass == HoaDonDTO.class && source instanceof HoaDon entity) return toHoaDonDTO(entity);
         if (targetClass == ChiTietHoaDonDTO.class && source instanceof ChiTietHoaDon entity) return toChiTietHoaDonDTO(entity);
         if (targetClass == LoSanPhamDTO.class && source instanceof LoSanPham entity) return toLoSanPhamDTO(entity);
+        if (targetClass == BangGiaDTO.class && source instanceof BangGia entity) return toBangGiaDTO(entity);
+        if (targetClass == ChiTietBangGiaDTO.class && source instanceof ChiTietBangGia entity) return toChiTietBangGiaDTO(entity);
         if (targetClass == PhieuNhapDTO.class && source instanceof PhieuNhap entity) return toPhieuNhapDTO(entity);
         if (targetClass == ChiTietPhieuNhapDTO.class && source instanceof ChiTietPhieuNhap entity) return toChiTietPhieuNhapDTO(entity);
         if (targetClass == KhuyenMaiDTO.class && source instanceof KhuyenMai entity) return toKhuyenMaiDTO(entity);
@@ -212,6 +214,29 @@ public final class Mapper {
         ct.setGiaDen(dto.getGiaDen());
         ct.setTiLe(dto.getTiLe());
         return ct;
+    }
+
+    private static BangGiaDTO toBangGiaDTO(BangGia bg) {
+        BangGiaDTO dto = new BangGiaDTO();
+        dto.setMaBangGia(bg.getMaBangGia());
+        if (bg.getNhanVien() != null) {
+            dto.setMaNhanVien(bg.getNhanVien().getMaNhanVien());
+        }
+        dto.setTenBangGia(bg.getTenBangGia());
+        dto.setNgayApDung(bg.getNgayApDung());
+        dto.setHoatDong(bg.isHoatDong());
+        return dto;
+    }
+
+    private static ChiTietBangGiaDTO toChiTietBangGiaDTO(ChiTietBangGia ct) {
+        ChiTietBangGiaDTO dto = new ChiTietBangGiaDTO();
+        if (ct.getBangGia() != null) {
+            dto.setMaBangGia(ct.getBangGia().getMaBangGia());
+        }
+        dto.setGiaTu(ct.getGiaTu());
+        dto.setGiaDen(ct.getGiaDen());
+        dto.setTiLe(ct.getTiLe());
+        return dto;
     }
 
     private static ChiTietKhuyenMaiSanPham toChiTietKhuyenMaiSanPham(ChiTietKhuyenMaiSanPhamDTO dto) {

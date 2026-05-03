@@ -4,6 +4,7 @@ import dao.iml.ChiTietPhieuTraDaoImpl;
 import dao.iml.PhieuTraDaoImpl;
 import dao.iml.QuyCachDongGoiDaoImpl;
 import dao.iml.TaiKhoanDaoImpl;
+import dao.iml.ThongKeNhanVienDaoImpl;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -32,10 +33,13 @@ public class ClientHandler implements Runnable {
     private final PhieuNhapService phieuNhapService;
     private final NhaCungCapService nhaCungCapService;
     private final PhieuHuyService phieuHuyService;
+    private final BangGiaService bangGiaService;
+    private final DonViTinhService donViTinhService;
     private final PhieuTraDaoImpl phieuTraDao;
     private final ChiTietPhieuTraDaoImpl chiTietPhieuTraDao;
     private final QuyCachDongGoiDaoImpl quyCachDongGoiDao;
     private final TaiKhoanDaoImpl taiKhoanDao;
+    private final ThongKeNhanVienDaoImpl thongKeNhanVienDao;
 
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -49,10 +53,13 @@ public class ClientHandler implements Runnable {
         this.phieuNhapService = new PhieuNhapServiceImpl();
         this.nhaCungCapService = new NhaCungCapServiceImpl();
         this.phieuHuyService = new PhieuHuyServiceImpl();
+        this.bangGiaService = new BangGiaServiceImpl();
+        this.donViTinhService = new DonViTinhServiceImpl();
         this.phieuTraDao = new PhieuTraDaoImpl();
         this.chiTietPhieuTraDao = new ChiTietPhieuTraDaoImpl();
         this.quyCachDongGoiDao = new QuyCachDongGoiDaoImpl();
         this.taiKhoanDao = new TaiKhoanDaoImpl();
+        this.thongKeNhanVienDao = new ThongKeNhanVienDaoImpl();
     }
 
     @Override
@@ -472,6 +479,95 @@ public class ClientHandler implements Runnable {
                     response.setData(phieuHuyService.taoMaPhieuHuy());
                 }
 
+                // ==================== BangGia ====================
+                case BANGGIA_LAY_TAT_CA -> {
+                    response.setSuccess(true);
+                    response.setData(bangGiaService.layTatCaBangGia());
+                }
+                case BANGGIA_LAY_DANG_HOAT_DONG -> {
+                    BangGiaDTO bg = bangGiaService.layBangGiaDangHoatDong();
+                    response.setSuccess(bg != null);
+                    response.setData(bg);
+                    response.setMessage(bg != null ? "TÃ¬m tháº¥y báº£ng giÃ¡ Ä‘ang hoáº¡t Ä‘á»™ng" : "KhÃ´ng cÃ³ báº£ng giÃ¡ Ä‘ang hoáº¡t Ä‘á»™ng");
+                }
+                case BANGGIA_LAY_THEO_MA -> {
+                    BangGiaDTO bg = bangGiaService.layBangGiaTheoMa((String) data);
+                    response.setSuccess(bg != null);
+                    response.setData(bg);
+                    response.setMessage(bg != null ? "TÃ¬m tháº¥y" : "KhÃ´ng tÃ¬m tháº¥y báº£ng giÃ¡");
+                }
+                case BANGGIA_THEM -> {
+                    boolean ok = bangGiaService.themBangGia((BangGiaDTO) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "ThÃªm báº£ng giÃ¡ thÃ nh cÃ´ng" : "ThÃªm báº£ng giÃ¡ tháº¥t báº¡i");
+                }
+                case BANGGIA_CAP_NHAT -> {
+                    boolean ok = bangGiaService.capNhatBangGia((BangGiaDTO) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "Cáº­p nháº­t báº£ng giÃ¡ thÃ nh cÃ´ng" : "Cáº­p nháº­t báº£ng giÃ¡ tháº¥t báº¡i");
+                }
+                case BANGGIA_XOA -> {
+                    boolean ok = bangGiaService.xoaBangGia((String) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "XÃ³a báº£ng giÃ¡ thÃ nh cÃ´ng" : "XÃ³a báº£ng giÃ¡ tháº¥t báº¡i");
+                }
+                case BANGGIA_HUY_HOAT_DONG_TAT_CA_TRU -> {
+                    boolean ok = bangGiaService.huyHoatDongTatCaTruBangGia((String) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "Cáº­p nháº­t tráº¡ng thÃ¡i báº£ng giÃ¡ thÃ nh cÃ´ng" : "Cáº­p nháº­t tráº¡ng thÃ¡i báº£ng giÃ¡ tháº¥t báº¡i");
+                }
+                case BANGGIA_TAO_MA -> {
+                    response.setSuccess(true);
+                    response.setData(bangGiaService.taoMaBangGia());
+                }
+                case BANGGIA_LAY_CHI_TIET -> {
+                    response.setSuccess(true);
+                    response.setData(bangGiaService.layChiTietTheoMaBangGia((String) data));
+                }
+                case BANGGIA_THEM_CHI_TIET -> {
+                    boolean ok = bangGiaService.themChiTietBangGia((ChiTietBangGiaDTO) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "ThÃªm chi tiáº¿t báº£ng giÃ¡ thÃ nh cÃ´ng" : "ThÃªm chi tiáº¿t báº£ng giÃ¡ tháº¥t báº¡i");
+                }
+                case BANGGIA_XOA_TAT_CA_CHI_TIET -> {
+                    boolean ok = bangGiaService.xoaTatCaChiTiet((String) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "XÃ³a chi tiáº¿t báº£ng giÃ¡ thÃ nh cÃ´ng" : "XÃ³a chi tiáº¿t báº£ng giÃ¡ tháº¥t báº¡i");
+                }
+
+                // ==================== DonViTinh ====================
+                case DONVITINH_LAY_TAT_CA -> {
+                    response.setSuccess(true);
+                    response.setData(donViTinhService.layTatCaDonViTinh().stream().map(this::toDonViTinhDTO).toList());
+                }
+                case DONVITINH_LAY_THEO_MA -> {
+                    DonViTinh dvt = donViTinhService.timDonViTinhTheoMa((String) data);
+                    response.setSuccess(dvt != null);
+                    response.setData(dvt != null ? toDonViTinhDTO(dvt) : null);
+                    response.setMessage(dvt != null ? "TÃ¬m tháº¥y" : "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n vá»‹ tÃ­nh");
+                }
+                case DONVITINH_THEM -> {
+                    DonViTinh dvt = data instanceof DonViTinhDTO dto ? toDonViTinhEntity(dto) : (DonViTinh) data;
+                    boolean ok = donViTinhService.themDonViTinh(dvt);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "ThÃªm Ä‘Æ¡n vá»‹ tÃ­nh thÃ nh cÃ´ng" : "ThÃªm Ä‘Æ¡n vá»‹ tÃ­nh tháº¥t báº¡i");
+                }
+                case DONVITINH_CAP_NHAT -> {
+                    DonViTinh dvt = data instanceof DonViTinhDTO dto ? toDonViTinhEntity(dto) : (DonViTinh) data;
+                    boolean ok = donViTinhService.capNhatDonViTinh(dvt);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "Cáº­p nháº­t Ä‘Æ¡n vá»‹ tÃ­nh thÃ nh cÃ´ng" : "Cáº­p nháº­t Ä‘Æ¡n vá»‹ tÃ­nh tháº¥t báº¡i");
+                }
+                case DONVITINH_XOA -> {
+                    boolean ok = donViTinhService.xoaDonViTinh((String) data);
+                    response.setSuccess(ok);
+                    response.setMessage(ok ? "XÃ³a Ä‘Æ¡n vá»‹ tÃ­nh thÃ nh cÃ´ng" : "XÃ³a Ä‘Æ¡n vá»‹ tÃ­nh tháº¥t báº¡i");
+                }
+                case DONVITINH_TAO_MA -> {
+                    response.setSuccess(true);
+                    response.setData(donViTinhService.taoMaTuDong());
+                }
+
                 // ==================== NhaCungCap ====================
                 case NHACUNGCAP_LAY_TAT_CA -> {
                     response.setSuccess(true);
@@ -620,6 +716,28 @@ public class ClientHandler implements Runnable {
                     response.setData(phieuTraDao.daTraLoTrongHoaDon((String) params[0], (String) params[1]));
                 }
 
+                // ==================== ThongKe NhanVien ====================
+                case THONGKE_NHANVIEN_LAY_THONG_KE -> {
+                    Object[] params = (Object[]) data;
+                    dao.ThongKeNhanVienDao.KetQuaThongKe kq = thongKeNhanVienDao.getThongKe(
+                            (java.util.Date) params[1],
+                            (java.util.Date) params[2],
+                            (String) params[0],
+                            (Integer) params[3]);
+                    ThongKeNhanVienDTO dto = new ThongKeNhanVienDTO();
+                    dto.tongDoanhSo = kq.tongDoanhSo;
+                    dto.soHoaDon = kq.soHoaDon;
+                    dto.soPhieuTra = kq.soPhieuTra;
+                    dto.tongTienTra = kq.tongTienTra;
+                    dto.soPhieuHuy = kq.soPhieuHuy;
+                    response.setSuccess(true);
+                    response.setData(dto);
+                }
+                case THONGKE_NHANVIEN_LAY_DANH_SACH -> {
+                    response.setSuccess(true);
+                    response.setData(thongKeNhanVienDao.getDanhSachNhanVien());
+                }
+
                 default -> {
                     response.setSuccess(false);
                     response.setMessage("Lệnh không được hỗ trợ: " + cmd);
@@ -663,6 +781,11 @@ public class ClientHandler implements Runnable {
         dto.setMaDonViTinh(entity.getMaDonViTinh());
         dto.setTenDonViTinh(entity.getTenDonViTinh());
         return dto;
+    }
+
+    private DonViTinh toDonViTinhEntity(DonViTinhDTO dto) {
+        if (dto == null) return null;
+        return new DonViTinh(dto.getMaDonViTinh(), dto.getTenDonViTinh());
     }
 
     private QuyCachDongGoiDTO toQuyCachDongGoiDTO(QuyCachDongGoi entity) {
