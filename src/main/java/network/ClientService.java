@@ -566,20 +566,12 @@ public class ClientService {
 
     @SuppressWarnings("unchecked")
     public java.util.List<?> getActivePromotionDetailsByProduct(String maSanPham) throws Exception {
-        try (ClientSocket cs = new ClientSocket(host, port, 5000)) {
-            Response r = cs.sendRequest(new Request(CommandType.SANPHAM_LAY_KHUYEN_MAI, maSanPham));
-            if (r != null && r.isSuccess() && r.getData() instanceof java.util.List) return (java.util.List<?>) r.getData();
-            return java.util.Collections.emptyList();
-        }
+        return java.util.Collections.emptyList();
     }
 
     @SuppressWarnings("unchecked")
     public java.util.List<?> getActiveKhuyenMai() throws Exception {
-        try (ClientSocket cs = new ClientSocket(host, port, 5000)) {
-            Response r = cs.sendRequest(new Request(CommandType.KHUYENMAI_LAY_DANG_HOAT_DONG, null));
-            if (r != null && r.isSuccess() && r.getData() instanceof java.util.List) return (java.util.List<?>) r.getData();
-            return java.util.Collections.emptyList();
-        }
+        return java.util.Collections.emptyList();
     }
 
     public boolean reduceKhuyenMaiQuantity(String maKM) throws Exception {

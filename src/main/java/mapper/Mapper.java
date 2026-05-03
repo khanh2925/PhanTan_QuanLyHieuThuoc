@@ -201,21 +201,8 @@ public final class Mapper {
 
     private static ChiTietKhuyenMaiSanPham toChiTietKhuyenMaiSanPham(ChiTietKhuyenMaiSanPhamDTO dto) {
         ChiTietKhuyenMaiSanPham chiTiet = new ChiTietKhuyenMaiSanPham();
-        if (hasText(dto.getMaSanPham())) {
-            chiTiet.setSanPham(new SanPham(dto.getMaSanPham()));
-        }
-        if (hasText(dto.getMaKM())) {
-            KhuyenMai khuyenMai = new KhuyenMai();
-            khuyenMai.setMaKM(dto.getMaKM());
-            khuyenMai.setTenKM(dto.getTenKM());
-            khuyenMai.setHinhThuc(parseHinhThucKM(dto.getHinhThuc()));
-            khuyenMai.setGiaTri(dto.getGiaTri());
-            khuyenMai.setNgayBatDau(parseDisplayDate(dto.getNgayBatDau()));
-            khuyenMai.setNgayKetThuc(parseDisplayDate(dto.getNgayKetThuc()));
-            khuyenMai.setTrangThai(dto.isDangHoatDong());
-            khuyenMai.setKhuyenMaiHoaDon(false);
-            chiTiet.setKhuyenMai(khuyenMai);
-        }
+        chiTiet.setSanPham(new SanPham(dto.getMaSanPham()));
+        chiTiet.setKhuyenMai(new KhuyenMai(dto.getMaKM()));
         return chiTiet;
     }
 

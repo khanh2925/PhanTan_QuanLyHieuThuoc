@@ -621,8 +621,7 @@ public class TraCuuDonTraHang_GUI extends JPanel implements ActionListener {
 		for (PhieuTra pt : ketQua) {
 			// Lọc Ngày
 			LocalDate ngayLap = pt.getNgayLap();
-			boolean checkNgay = ngayLap != null
-					&& (ngayLap.isEqual(fromDate) || ngayLap.isAfter(fromDate))
+			boolean checkNgay = (ngayLap.isEqual(fromDate) || ngayLap.isAfter(fromDate))
 					&& (ngayLap.isEqual(toDate) || ngayLap.isBefore(toDate));
 
 			// Lọc Trạng Thái
@@ -657,9 +656,18 @@ public class TraCuuDonTraHang_GUI extends JPanel implements ActionListener {
 		txtTimKiem.setText("");
 		PlaceholderSupport.addPlaceholder(txtTimKiem, PLACEHOLDER_TIM_KIEM);
 
+		// --- CHỌN NGÀY MẶC ĐỊNH: 30 ngày giống QLTraHang_GUI ---
 		taiDanhSachPhieuTra();
-		dateTuNgay.setDate(null);
-		dateDenNgay.setDate(null);
+
+		// Đến ngày: Hôm nay
+		Calendar cal = Calendar.getInstance();
+		Date now = cal.getTime();
+		dateDenNgay.setDate(now);
+
+		// Từ ngày: 30 ngày trước
+		cal.add(Calendar.DAY_OF_MONTH, -30);
+		Date d30 = cal.getTime();
+		dateTuNgay.setDate(d30);
 
 		cbTrangThai.setSelectedIndex(0);
 
@@ -677,11 +685,8 @@ public class TraCuuDonTraHang_GUI extends JPanel implements ActionListener {
 		int stt = 1;
 
 		for (PhieuTra pt : ds) {
-			String tenKH = pt.getKhachHang() != null ? pt.getKhachHang().getTenKhachHang() : "Khách lẻ";
-			String tenNV = pt.getNhanVien() != null ? pt.getNhanVien().getTenNhanVien() : "N/A";
-			String ngayLap = pt.getNgayLap() != null ? pt.getNgayLap().format(dtf) : "";
-			modelPhieuTra.addRow(new Object[] { stt++, pt.getMaPhieuTra(), tenKH,
-					tenNV, ngayLap, df.format(pt.getTongTienHoan()),
+			modelPhieuTra.addRow(new Object[] { stt++, pt.getMaPhieuTra(), pt.getKhachHang().getTenKhachHang(),
+					pt.getNhanVien().getTenNhanVien(), pt.getNgayLap().format(dtf), df.format(pt.getTongTienHoan()),
 					pt.isTrangThai() ? "Đã duyệt" : "Chờ duyệt" });
 		}
 	}
