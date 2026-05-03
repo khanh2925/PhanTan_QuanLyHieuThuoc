@@ -128,6 +128,27 @@
 
     <build>
         <plugins>
+            <!-- Build Helper Plugin to add source directories -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/client-gui-legacy/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Compiler Plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -137,10 +158,11 @@
                     <source>17</source>
                     <target>17</target>
                     <encoding>UTF-8</encoding>
-                    <excludes>
+                    <!-- Temporarily include client GUI for testing -->
+                    <!-- <excludes>
                         <exclude>app/**/*.java</exclude>
                         <exclude>presentation/**/*.java</exclude>
-                    </excludes>
+                    </excludes> -->
                 </configuration>
             </plugin>
 
@@ -157,6 +179,16 @@
                             <classpathPrefix>lib/</classpathPrefix>
                         </manifest>
                     </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Exec Maven Plugin -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>test.TestBanHang</mainClass>
                 </configuration>
             </plugin>
 

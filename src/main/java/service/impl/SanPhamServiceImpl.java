@@ -2,10 +2,14 @@ package service.impl;
 
 import java.util.List;
 
+import dao.BangGiaDao;
+import dao.iml.BangGiaDaoImpl;
 import dao.SanPhamDao;
 import dao.iml.SanPhamDaoImpl;
 import dto.ChiTietKhuyenMaiSanPhamDTO;
 import dto.SanPhamDTO;
+import entity.BangGia;
+import entity.ChiTietBangGia;
 import entity.LoaiSanPham;
 import entity.SanPham;
 import mapper.Mapper;
@@ -14,13 +18,16 @@ import service.SanPhamService;
 public class SanPhamServiceImpl implements SanPhamService {
 
     private final SanPhamDao sanPhamDao;
+    private final BangGiaDao bangGiaDao;
 
     public SanPhamServiceImpl() {
         this.sanPhamDao = new SanPhamDaoImpl();
+        this.bangGiaDao = new BangGiaDaoImpl();
     }
 
     public SanPhamServiceImpl(SanPhamDao sanPhamDao) {
         this.sanPhamDao = sanPhamDao;
+        this.bangGiaDao = new BangGiaDaoImpl();
     }
 
     @Override
@@ -30,22 +37,26 @@ public class SanPhamServiceImpl implements SanPhamService {
 
     @Override
     public SanPhamDTO laySanPhamTheoMa(String maSanPham) {
-        return Mapper.map(sanPhamDao.laySanPhamTheoMa(maSanPham), SanPhamDTO.class);
+        return mapSanPhamCoBangGia(sanPhamDao.laySanPhamTheoMa(maSanPham));
     }
 
     @Override
     public SanPhamDTO timSanPhamTheoSoDangKy(String soDangKy) {
-        return Mapper.map(sanPhamDao.timSanPhamTheoSoDangKy(soDangKy), SanPhamDTO.class);
+        return mapSanPhamCoBangGia(sanPhamDao.timSanPhamTheoSoDangKy(soDangKy));
     }
 
     @Override
     public List<SanPhamDTO> timKiemSanPham(String tuKhoa) {
-        return Mapper.mapList(sanPhamDao.timKiemSanPham(tuKhoa), SanPhamDTO.class);
+        return sanPhamDao.timKiemSanPham(tuKhoa).stream()
+                .map(this::mapSanPhamCoBangGia)
+                .toList();
     }
 
     @Override
     public List<SanPhamDTO> laySanPhamTheoLoai(LoaiSanPham loaiSP) {
-        return Mapper.mapList(sanPhamDao.laySanPhamTheoLoai(loaiSP), SanPhamDTO.class);
+        return sanPhamDao.laySanPhamTheoLoai(loaiSP).stream()
+                .map(this::mapSanPhamCoBangGia)
+                .toList();
     }
 
     @Override
@@ -71,5 +82,47 @@ public class SanPhamServiceImpl implements SanPhamService {
     @Override
     public void refreshCache() {
         sanPhamDao.refreshCache();
+    }
+
+    private SanPhamDTO mapSanPhamCoBangGia(SanPham sanPham) {
+        if (sanPham == null) {
+            return null;
+        }
+        boSungGiaBanHienTai(sanPham);
+        return Mapper.map(sanPham, SanPhamDTO.class);
+    }
+
+    private void boSungGiaBanHienTai(SanPham sanPham) {
+        if (sanPham.getGiaBan() > 0) {
+            return;
+        }
+
+        BangGia bangGiaDangHoatDong = bangGiaDao.layBangGiaDangHoatDong();
+        if (bangGiaDangHoatDong == null) {
+            return;
+        }
+
+        List<ChiTietBangGia> danhSachChiTiet = bangGiaDao.layChiTietTheoMaBangGia(bangGiaDangHoatDong.getMaBangGia());
+        if (danhSachChiTiet == null || danhSachChiTiet.isEmpty()) {
+            return;
+        }
+
+        double giaNhap = sanPham.getGiaNhap();
+        for (ChiTietBangGia chiTiet : danhSachChiTiet) {
+            double giaTu = chiTiet.getGiaTu();
+            double giaDen = chiTiet.getGiaDen();
+            boolean khopKhoang = giaNhap >= giaTu && (giaDen <= 0 || giaNhap <= giaDen);
+            if (!khopKhoang) {
+                continue;
+            }
+
+            ChiTietBangGia chiTietHienTai = new ChiTietBangGia(
+                    bangGiaDangHoatDong,
+                    chiTiet.getGiaTu(),
+                    chiTiet.getGiaDen(),
+                    chiTiet.getTiLe());
+            sanPham.setChiTietBangGiaHienTai(chiTietHienTai);
+            return;
+        }
     }
 }

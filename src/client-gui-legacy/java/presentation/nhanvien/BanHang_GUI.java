@@ -35,10 +35,13 @@ import entity.NhanVien;
 import entity.QuyCachDongGoi;
 import entity.SanPham;
 import dto.TaiKhoanDTO;
+import dto.BangGiaDTO;
+import dto.ChiTietBangGiaDTO;
 import entity.Session;
 import entity.HinhThucKM;
 import presentation.panel.DonHangItemPanel;
 import presentation.dialog.HoaDonPreviewDialog;
+import dto.KhachHangDTO;
 
 
 /**
@@ -93,16 +96,19 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 	private boolean cheDoUuTienHoaDon = false; // Mặc định là False (Ưu tiên KM Sản phẩm)
 	private static final String REGEX_MA_SP = "^SP-\\d{6}$";
 	private static final String REGEX_SO_DANG_KY = "^[A-Za-z0-9./-]{1,20}$";
+	private static final String MA_KHACH_VANG_LAI = "KH-00000000-0000";
+	private static final String SDT_KHACH_VANG_LAI = "0000000000";
 
 
 	public BanHang_GUI() {
 		setPreferredSize(new Dimension(1537, 850));
+		svc = new ClientService();
 		initialize();
 
 		// Client service for socket requests (incremental migration)
-		svc = new ClientService();
 		dsItem = new ArrayList<>();
-		khachHangHienTai = null;
+		khachHangHienTai = ensureKhachHangVangLai();
+		capNhatTenKhachHienThi();
 
 		// Thiết lập phím tắt
 		setupKeyboardShortcuts();
@@ -611,23 +617,7 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 				}
 
 		// 3. Lấy khách cho hóa đơn (Nếu không chọn thì lấy khách Vãng Lai)
-		KhachHang khForHD = khachHangHienTai;
-		if (khForHD == null) {
-			try {
-				Object o = svc.getKhachHangByCode("KH-00000000-0000");
-				if (o instanceof KhachHang) khForHD = (KhachHang) o;
-			} catch (Exception ex) {
-				// ignore and fallback to DAO
-			}
-			if (khForHD == null) {
-			try {
-				Object o = svc.getKhachHangByCode("KH-00000000-0000");
-				if (o instanceof KhachHang) khForHD = (KhachHang) o;
-			} catch (Exception ex) {
-				// ignore and keep null
-			}
-		}
-		}
+		KhachHang khForHD = khachHangHienTai != null ? khachHangHienTai : ensureKhachHangVangLai();
 
 		// 4. Kiểm tra tiền khách đưa
 		double tienKhach = parseTienTuTextField(txtTienKhach);
@@ -915,6 +905,11 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 			return;
 		}
 
+		double giaBanCoSo = tinhGiaBanCoSo(sp);
+		if (giaBanCoSo > 0 && sp.getGiaBan() <= 0) {
+			sp.setGiaBan(giaBanCoSo);
+		}
+
 		if (congDonNeuTrungSanPham(sp)) {
 			txtTimThuoc.setText("");
 			txtTimThuoc.requestFocus();
@@ -971,12 +966,12 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		for (int i = 0; i < dsQuyCach.size(); i++) {
 			QuyCachDongGoi qc = dsQuyCach.get(i);
 			donViArr[i] = qc.getDonViTinh().getTenDonViTinh();
-			double giaGoc = sp.getGiaBan() * qc.getHeSoQuyDoi();
+			double giaGoc = giaBanCoSo * qc.getHeSoQuyDoi();
 			giaArr[i] = giaGoc - giaGoc * qc.getTiLeGiam();
 			heSoArr[i] = qc.getHeSoQuyDoi();
 			// Debug: In ra giá để kiểm tra
 			System.out.println("DEBUG - Đơn vị: " + donViArr[i] +
-					" | Giá bán SP: " + sp.getGiaBan() +
+					" | Giá bán SP: " + giaBanCoSo +
 					" | Hệ số: " + qc.getHeSoQuyDoi() +
 					" | Giá gốc: " + giaGoc +
 					" | Tỉ lệ giảm: " + qc.getTiLeGiam() +
@@ -1008,17 +1003,27 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 			anhPath = "icon_anh_sp_null.png";
 		}
 
-		// Lô gần nhất
-		LoSanPham loDauTien = dsLo.get(0);
-		int tonThucTe = 0;
-		try {
-			tonThucTe = svc.getLotQuantity(loDauTien.getMaLo(), sp.getMaSanPham());
-		} catch (Exception ex) {
-			ex.printStackTrace();
+		// ===== Chọn lô có tồn kho (ưu tiên lô gần hết hạn nhất) =====
+		// Sắp xếp theo hạn sử dụng (gần nhất trước)
+		dsLo.sort((a, b) -> a.getHanSuDung().compareTo(b.getHanSuDung()));
+
+		LoSanPham loChon = null;
+		for (LoSanPham lo : dsLo) {
+			int tonThucTe = 0;
+			try {
+				tonThucTe = svc.getLotQuantity(lo.getMaLo(), sp.getMaSanPham());
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+			lo.setSoLuongTon(tonThucTe);
+			if (tonThucTe > 0) {
+				loChon = lo;
+				break; // Chọn lô đầu tiên có tồn kho
+			}
 		}
-		loDauTien.setSoLuongTon(tonThucTe);
-		if (tonThucTe <= 0) {
-			JOptionPane.showMessageDialog(this, "Lô gần hết hạn đã hết hàng (tồn khả dụng = 0)!", "Hết hàng",
+
+		if (loChon == null) {
+			JOptionPane.showMessageDialog(this, "Tất cả lô của sản phẩm này đã hết hàng!", "Hết hàng",
 					JOptionPane.WARNING_MESSAGE);
 			return;
 		}
@@ -1026,7 +1031,7 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 
 		// ⚠️ FIX: Set lại SanPham đầy đủ cho Lô (Vì DAO chỉ trả về Lo chứa SP có mỗi
 		// mã)
-		loDauTien.setSanPham(sp);
+		loChon.setSanPham(sp);
 		
 		// Map quy cách
 		Map<String, QuyCachDongGoi> mapQC = new HashMap<>();
@@ -1038,7 +1043,7 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		String tenDonViMacDinh = donViArr[0];
 		double giaMacDinh = giaArr[0];
 
-		ItemDonHang item = new ItemDonHang(sp, loDauTien, kmSP, mapQC, tenDonViMacDinh, giaMacDinh);
+		ItemDonHang item = new ItemDonHang(sp, loChon, kmSP, mapQC, tenDonViMacDinh, giaMacDinh);
 		dsItem.add(item);
 
 		int stt = dsItem.size();
@@ -1049,6 +1054,48 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		txtTimThuoc.setText("");
 		txtTimThuoc.requestFocus();
 		capNhatTongTien();
+	}
+
+	private double tinhGiaBanCoSo(SanPham sp) {
+		if (sp == null) {
+			return 0;
+		}
+		if (sp.getGiaBan() > 0) {
+			return sp.getGiaBan();
+		}
+
+		double giaNhap = sp.getGiaNhap();
+		if (giaNhap <= 0) {
+			return 0;
+		}
+
+		try {
+			Object bgObj = svc.getBangGiaDangHoatDong();
+			if (!(bgObj instanceof BangGiaDTO bangGiaDangHoatDong)) {
+				return giaNhap;
+			}
+
+			java.util.List<?> chiTietList = svc.getChiTietBangGia(bangGiaDangHoatDong.getMaBangGia());
+			if (chiTietList == null || chiTietList.isEmpty()) {
+				return giaNhap;
+			}
+
+			for (Object obj : chiTietList) {
+				if (!(obj instanceof ChiTietBangGiaDTO chiTiet)) {
+					continue;
+				}
+				double giaTu = chiTiet.getGiaTu();
+				double giaDen = chiTiet.getGiaDen();
+				boolean khopKhoang = giaNhap >= giaTu && (giaDen <= 0 || giaNhap <= giaDen);
+				if (khopKhoang) {
+					return Math.round(giaNhap * chiTiet.getTiLe());
+				}
+			}
+		} catch (Exception ex) {
+			// Nếu bảng giá không lấy được, dùng giaNhap làm giá sàn để UI không bị 0 tiền.
+		}
+
+		return giaNhap;
 	}
 
 	// ================= HỖ TRỢ CỘNG DỒN ==================
@@ -1428,8 +1475,8 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 				// Ở đây tôi chọn giải pháp an toàn: Giữ nguyên SĐT đó nhưng Tên Khách vẫn là
 				// Vãng lai
 				// Để họ biết là SĐT này chưa có trong hệ thống.
-				khachHangHienTai = null;
-				txtTenKhachHang.setText("Vãng lai (SĐT chưa lưu)");
+				khachHangHienTai = ensureKhachHangVangLai();
+				capNhatTenKhachHienThi();
 			}
 			return;
 		}
@@ -1441,8 +1488,8 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 
 	/** Helper để reset về vãng lai nhanh */
 	private void troVeKhachVangLai() {
-		khachHangHienTai = null;
-		txtTenKhachHang.setText("Vãng lai");
+		khachHangHienTai = ensureKhachHangVangLai();
+		capNhatTenKhachHienThi();
 		txtTimKH.setText(PLACEHOLDER_TIM_KH);
 		txtTimKH.setForeground(Color.GRAY);
 
@@ -1451,6 +1498,52 @@ public class BanHang_GUI extends JPanel implements ActionListener {
 		btnApDungKMHD.setVisible(false);
 
 		capNhatTongTien();
+	}
+
+	private KhachHang ensureKhachHangVangLai() {
+		KhachHang kh = null;
+		try {
+			Object remote = svc.getKhachHangByCode(MA_KHACH_VANG_LAI);
+			if (remote instanceof KhachHang) {
+				kh = (KhachHang) remote;
+			}
+		} catch (Exception ex) {
+			// ignore and create below
+		}
+
+		if (kh != null) {
+			return kh;
+		}
+
+		KhachHangDTO dto = new KhachHangDTO();
+		dto.setMaKhachHang(MA_KHACH_VANG_LAI);
+		dto.setTenKhachHang("Khách vãng lai");
+		dto.setSoDienThoai(SDT_KHACH_VANG_LAI);
+		dto.setGioiTinh("Nam");
+		dto.setNgaySinh("01/01/1900");
+		dto.setSoLanMua(0);
+		dto.setTongChiTieu(0);
+
+		try {
+			svc.createKhachHang(dto);
+		} catch (Exception ex) {
+			// ignore and re-fetch below
+		}
+
+		try {
+			Object remote = svc.getKhachHangByCode(MA_KHACH_VANG_LAI);
+			if (remote instanceof KhachHang) {
+				return (KhachHang) remote;
+			}
+		} catch (Exception ex) {
+			// ignore
+		}
+
+		return null;
+	}
+
+	private void capNhatTenKhachHienThi() {
+		txtTenKhachHang.setText(khachHangHienTai != null ? khachHangHienTai.getTenKhachHang() : "Vãng lai");
 	}
 
 	/**

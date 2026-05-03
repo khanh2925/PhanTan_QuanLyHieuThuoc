@@ -13,6 +13,7 @@ import dto.KhuyenMaiDTO;
 import dto.LoSanPhamDTO;
 import dto.NhanVienDTO;
 import dto.PhieuNhapDTO;
+import dto.QuyCachDongGoiDTO;
 import dto.SanPhamDTO;
 import dto.PhieuTraDTO;
 import dto.TaiKhoanDTO;
@@ -33,6 +34,7 @@ import entity.NhaCungCap;
 import entity.NhanVien;
 import entity.PhieuNhap;
 import entity.PhieuTra;
+import entity.QuyCachDongGoi;
 import entity.SanPham;
 import entity.TaiKhoan;
 
@@ -89,8 +91,7 @@ public final class Mapper {
         if (targetClass == KhachHang.class && source instanceof KhachHangDTO dto) return toKhachHang(dto);
         if (targetClass == NhanVien.class && source instanceof NhanVienDTO dto) return toNhanVien(dto);
         if (targetClass == SanPham.class && source instanceof SanPhamDTO dto) return toSanPham(dto);
-        if (targetClass == HoaDon.class && source instanceof HoaDonCreateUpdateDTO dto) return toHoaDon(dto);
-        if (targetClass == LoSanPham.class && source instanceof LoSanPhamDTO dto) return toLoSanPham(dto);
+        if (targetClass == HoaDon.class && source instanceof HoaDonCreateUpdateDTO dto) return toHoaDon(dto);        if (targetClass == QuyCachDongGoi.class && source instanceof QuyCachDongGoiDTO dto) return toQuyCachDongGoi(dto);        if (targetClass == LoSanPham.class && source instanceof LoSanPhamDTO dto) return toLoSanPham(dto);
         if (targetClass == KhuyenMai.class && source instanceof KhuyenMaiDTO dto) return toKhuyenMai(dto);
         if (targetClass == ChiTietKhuyenMaiSanPham.class && source instanceof ChiTietKhuyenMaiSanPhamDTO dto) return toChiTietKhuyenMaiSanPham(dto);
         if (targetClass == PhieuNhap.class && source instanceof PhieuNhapDTO dto) return toPhieuNhap(dto);
@@ -176,6 +177,23 @@ public final class Mapper {
             loSanPham.setSanPham(new SanPham(dto.getMaSanPham()));
         }
         return loSanPham;
+    }
+
+    private static QuyCachDongGoi toQuyCachDongGoi(QuyCachDongGoiDTO dto) {
+        DonViTinh donViTinh = dto.getDonViTinh() != null
+            ? new DonViTinh(dto.getDonViTinh().getMaDonViTinh(), dto.getDonViTinh().getTenDonViTinh())
+            : null;
+        SanPham sanPham = dto.getSanPham() != null
+            ? new SanPham(dto.getSanPham().getMaSanPham())
+            : null;
+        return new QuyCachDongGoi(
+            dto.getMaQuyCach(),
+            donViTinh,
+            sanPham,
+            dto.getHeSoQuyDoi(),
+            dto.getTiLeGiam(),
+            dto.isDonViGoc(),
+            dto.isTrangThai());
     }
 
     private static KhuyenMai toKhuyenMai(KhuyenMaiDTO dto) {

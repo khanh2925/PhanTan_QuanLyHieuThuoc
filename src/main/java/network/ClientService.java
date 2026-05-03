@@ -1,12 +1,28 @@
 package network;
 
 import dto.TaiKhoanDTO;
+import dto.HoaDonCreateUpdateDTO;
+import dto.ChiTietHoaDonCreateUpdateDTO;
+import dto.SanPhamDTO;
+import dto.KhachHangDTO;
+import dto.LoSanPhamDTO;
+import dto.QuyCachDongGoiDTO;
+import entity.HoaDon;
+import entity.ChiTietHoaDon;
+import entity.SanPham;
+import entity.KhachHang;
+import entity.LoSanPham;
+import entity.QuyCachDongGoi;
+import mapper.Mapper;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * High-level client service that wraps socket requests.
  */
 public class ClientService {
+    private static final DateTimeFormatter DISPLAY_DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final String host;
     private final int port;
 
@@ -81,13 +97,17 @@ public class ClientService {
 
     public Object findProductByRegistration(String soDangKy) {
         Response r = sendReq(CommandType.SANPHAM_TIM_THEO_SO_DANG_KY, soDangKy);
-            if (r != null && r.isSuccess()) return r.getData();
+            if (r != null && r.isSuccess() && r.getData() instanceof SanPhamDTO dto) {
+                return Mapper.map(dto, SanPham.class);
+            }
             return null;
     }
 
     public Object getProductByCode(String maSanPham) {
         Response r = sendReq(CommandType.SANPHAM_LAY_THEO_MA, maSanPham);
-            if (r != null && r.isSuccess()) return r.getData();
+            if (r != null && r.isSuccess() && r.getData() instanceof SanPhamDTO dto) {
+                return Mapper.map(dto, SanPham.class);
+            }
             return null;
     }
 
@@ -118,8 +138,11 @@ public class ClientService {
     @SuppressWarnings("unchecked")
     public java.util.List<?> getLotsByProduct(String maSanPham) {
         Response r = sendReq(CommandType.LOSANPHAM_LAY_THEO_MA_SP, maSanPham);
-            if (r != null && r.isSuccess() && r.getData() instanceof java.util.List) {
-                return (java.util.List<?>) r.getData();
+            if (r != null && r.isSuccess() && r.getData() instanceof java.util.List<?> list) {
+                return list.stream()
+                    .filter(item -> item instanceof LoSanPhamDTO)
+                    .map(item -> Mapper.map((LoSanPhamDTO) item, LoSanPham.class))
+                    .collect(java.util.stream.Collectors.toList());
             }
             return java.util.Collections.emptyList();
     }
@@ -175,8 +198,12 @@ public class ClientService {
     }
 
     public boolean createHoaDon(Object hoaDon) {
-        Response r = sendReq(CommandType.HOADON_THEM, hoaDon);
-            return r != null && r.isSuccess();
+        Object payload = hoaDon;
+        if (hoaDon instanceof HoaDon hd) {
+            payload = toHoaDonCreateUpdateDTO(hd);
+        }
+        Response r = sendReq(CommandType.HOADON_THEM, payload);
+        return r != null && r.isSuccess();
     }
 
     public String taoMaBangGia() {
@@ -311,13 +338,17 @@ public class ClientService {
 
     public Object getKhachHangByCode(String maKhachHang) {
         Response r = sendReq(CommandType.KHACHHANG_LAY_THEO_MA, maKhachHang);
-            if (r != null && r.isSuccess()) return r.getData();
+            if (r != null && r.isSuccess() && r.getData() instanceof KhachHangDTO dto) {
+                return Mapper.map(dto, KhachHang.class);
+            }
             return null;
     }
 
     public Object getKhachHangByPhone(String soDienThoai) {
         Response r = sendReq(CommandType.KHACHHANG_LAY_THEO_SDT, soDienThoai);
-            if (r != null && r.isSuccess()) return r.getData();
+            if (r != null && r.isSuccess() && r.getData() instanceof KhachHangDTO dto) {
+                return Mapper.map(dto, KhachHang.class);
+            }
             return null;
     }
 
@@ -449,7 +480,14 @@ public class ClientService {
 
     @SuppressWarnings("unchecked")
     public java.util.List<?> getPackagingRulesByProduct(String maSanPham) {
-        return java.util.Collections.emptyList();
+        Response r = sendReq(CommandType.QUYCACH_LAY_THEO_SAN_PHAM, maSanPham);
+            if (r != null && r.isSuccess() && r.getData() instanceof java.util.List<?> list) {
+                return list.stream()
+                    .filter(item -> item instanceof QuyCachDongGoiDTO)
+                    .map(item -> Mapper.map((QuyCachDongGoiDTO) item, QuyCachDongGoi.class))
+                    .collect(java.util.stream.Collectors.toList());
+            }
+            return java.util.Collections.emptyList();
     }
 
     @SuppressWarnings("unchecked")
@@ -596,6 +634,31 @@ public class ClientService {
 
     public Object getProductByCodeWithService(String maSanPham) {
         return getProductByCode(maSanPham);
+    }
+
+    private HoaDonCreateUpdateDTO toHoaDonCreateUpdateDTO(HoaDon hd) {
+        HoaDonCreateUpdateDTO dto = new HoaDonCreateUpdateDTO();
+        dto.setMaHoaDon(hd.getMaHoaDon());
+        dto.setMaNhanVien(hd.getNhanVien() != null ? hd.getNhanVien().getMaNhanVien() : null);
+        dto.setMaKhachHang(hd.getKhachHang() != null ? hd.getKhachHang().getMaKhachHang() : null);
+        dto.setNgayLap(hd.getNgayLap() != null ? hd.getNgayLap().format(DISPLAY_DATE_FORMAT) : null);
+        dto.setMaKhuyenMai(hd.getKhuyenMai() != null ? hd.getKhuyenMai().getMaKM() : null);
+        dto.setThuocKeDon(hd.isThuocKeDon());
+
+        List<ChiTietHoaDonCreateUpdateDTO> chiTietList = new ArrayList<>();
+        if (hd.getDanhSachChiTiet() != null) {
+            for (ChiTietHoaDon ct : hd.getDanhSachChiTiet()) {
+                ChiTietHoaDonCreateUpdateDTO ctDto = new ChiTietHoaDonCreateUpdateDTO();
+                ctDto.setMaLo(ct.getLoSanPham() != null ? ct.getLoSanPham().getMaLo() : null);
+                ctDto.setMaDonViTinh(ct.getDonViTinh() != null ? ct.getDonViTinh().getMaDonViTinh() : null);
+                ctDto.setSoLuong(ct.getSoLuong());
+                ctDto.setGiaBan(ct.getGiaBan());
+                ctDto.setMaKhuyenMai(ct.getKhuyenMai() != null ? ct.getKhuyenMai().getMaKM() : null);
+                chiTietList.add(ctDto);
+            }
+        }
+        dto.setChiTietList(chiTietList);
+        return dto;
     }
 }
 
