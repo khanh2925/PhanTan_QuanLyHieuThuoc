@@ -137,6 +137,10 @@
                     <source>17</source>
                     <target>17</target>
                     <encoding>UTF-8</encoding>
+                    <excludes>
+                        <exclude>app/**/*.java</exclude>
+                        <exclude>presentation/**/*.java</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
 

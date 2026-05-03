@@ -501,7 +501,7 @@ public final class Mapper {
         dto.setTrangThai(km.isTrangThai());
         dto.setKhuyenMaiHoaDon(km.isKhuyenMaiHoaDon());
         dto.setLoaiKhuyenMai(km.isKhuyenMaiHoaDon() ? "Hóa đơn" : "Sản phẩm");
-        dto.setHinhThuc(km.getHinhThuc() != null ? km.getHinhThuc().getMoTa() : null);
+        dto.setHinhThuc(km.getHinhThuc() != null ? km.getHinhThuc().name() : null);
         dto.setGiaTri(km.getGiaTri());
         dto.setDieuKienApDungHoaDon(km.getDieuKienApDungHoaDon());
         dto.setSoLuongKhuyenMai(km.getSoLuongKhuyenMai());

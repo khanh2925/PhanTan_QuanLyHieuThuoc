@@ -18,6 +18,14 @@
 
     <dependencies>
         <dependency>
+            <groupId>iuh.fit</groupId>
+            <artifactId>quanlyhieuthuoc</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/quanlyhieuthuoc-1.0-SNAPSHOT.jar</systemPath>
+        </dependency>
+
+        <dependency>
             <groupId>com.miglayout</groupId>
             <artifactId>miglayout-swing</artifactId>
             <version>11.4.2</version>

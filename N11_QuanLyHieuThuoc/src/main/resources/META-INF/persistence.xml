@@ -27,6 +27,8 @@
         <class>entity.SanPham</class>
         <class>entity.TaiKhoan</class>
 
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.mariadb.jdbc.Driver"/>
             <property name="jakarta.persistence.jdbc.url" value="jdbc:mariadb://localhost:3306/QuanLyHieuThuoc?createDatabaseIfNotExist=true"/>

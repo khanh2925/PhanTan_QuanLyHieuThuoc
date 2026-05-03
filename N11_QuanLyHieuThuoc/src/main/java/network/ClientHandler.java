@@ -12,7 +12,34 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import dto.*;
+import dto.BangGiaDTO;
+import dto.ChiTietBangGiaDTO;
+import dto.ChiTietHoaDonCreateUpdateDTO;
+import dto.ChiTietHoaDonDTO;
+import dto.ChiTietKhuyenMaiSanPhamDTO;
+import dto.ChiTietPhieuHuyDTO;
+import dto.ChiTietPhieuNhapDTO;
+import dto.ChiTietPhieuTraDTO;
+import dto.DonViTinhDTO;
+import dto.HoaDonCreateUpdateDTO;
+import dto.HoaDonDTO;
+import dto.KhachHangDTO;
+import dto.KhuyenMaiDTO;
+import dto.LoSanPhamDTO;
+import dto.NhaCungCapDTO;
+import dto.NhanVienDTO;
+import dto.PhieuHuyDTO;
+import dto.PhieuNhapDTO;
+import dto.PhieuTraDTO;
+import dto.QuyCachDongGoiDTO;
+import dto.SanPhamDTO;
+import dto.TaiKhoanDTO;
+import dto.ThongKeBanGhiDTO;
+import dto.ThongKeDoanhThuDTO;
+import dto.ThongKeHoaDonNgayDTO;
+import dto.ThongKeNhanVienChiTietDTO;
+import dto.ThongKeNhanVienDTO;
+import dto.ThongKeTaiChinhDTO;
 import entity.*;
 import entity.LoaiSanPham;
 import mapper.Mapper;
@@ -751,7 +778,7 @@ public class ClientHandler implements Runnable {
         return response;
     }
 
-    private NhaCungCapDTO toNhaCungCapDTO(NhaCungCap entity) {
+    private NhaCungCapDTO toNhaCungCapDTO(entity.NhaCungCap entity) {
         if (entity == null) return null;
         NhaCungCapDTO dto = new NhaCungCapDTO();
         dto.setMaNhaCungCap(entity.getMaNhaCungCap());
@@ -763,9 +790,9 @@ public class ClientHandler implements Runnable {
         return dto;
     }
 
-    private NhaCungCap toNhaCungCapEntity(NhaCungCapDTO dto) {
+    private entity.NhaCungCap toNhaCungCapEntity(NhaCungCapDTO dto) {
         if (dto == null) return null;
-        NhaCungCap entity = new NhaCungCap();
+        entity.NhaCungCap entity = new entity.NhaCungCap();
         entity.setMaNhaCungCap(dto.getMaNhaCungCap());
         entity.setTenNhaCungCap(dto.getTenNhaCungCap());
         entity.setSoDienThoai(dto.getSoDienThoai());
@@ -775,7 +802,7 @@ public class ClientHandler implements Runnable {
         return entity;
     }
 
-    private DonViTinhDTO toDonViTinhDTO(DonViTinh entity) {
+    private DonViTinhDTO toDonViTinhDTO(entity.DonViTinh entity) {
         if (entity == null) return null;
         DonViTinhDTO dto = new DonViTinhDTO();
         dto.setMaDonViTinh(entity.getMaDonViTinh());
@@ -783,12 +810,12 @@ public class ClientHandler implements Runnable {
         return dto;
     }
 
-    private DonViTinh toDonViTinhEntity(DonViTinhDTO dto) {
+    private entity.DonViTinh toDonViTinhEntity(DonViTinhDTO dto) {
         if (dto == null) return null;
-        return new DonViTinh(dto.getMaDonViTinh(), dto.getTenDonViTinh());
+        return new entity.DonViTinh(dto.getMaDonViTinh(), dto.getTenDonViTinh());
     }
 
-    private QuyCachDongGoiDTO toQuyCachDongGoiDTO(QuyCachDongGoi entity) {
+    private QuyCachDongGoiDTO toQuyCachDongGoiDTO(entity.QuyCachDongGoi entity) {
         if (entity == null) return null;
         QuyCachDongGoiDTO dto = new QuyCachDongGoiDTO();
         dto.setMaQuyCach(entity.getMaQuyCach());
@@ -801,15 +828,15 @@ public class ClientHandler implements Runnable {
         return dto;
     }
 
-    private QuyCachDongGoi toQuyCachDongGoiEntity(QuyCachDongGoiDTO dto) {
+    private entity.QuyCachDongGoi toQuyCachDongGoiEntity(QuyCachDongGoiDTO dto) {
         if (dto == null) return null;
-        DonViTinh dvt = new DonViTinh(dto.getDonViTinh().getMaDonViTinh(), dto.getDonViTinh().getTenDonViTinh());
-        SanPham sp = dto.getSanPham() != null ? Mapper.map(dto.getSanPham(), SanPham.class) : null;
-        return new QuyCachDongGoi(dto.getMaQuyCach(), dvt, sp, dto.getHeSoQuyDoi(), dto.getTiLeGiam(),
+        entity.DonViTinh dvt = new entity.DonViTinh(dto.getDonViTinh().getMaDonViTinh(), dto.getDonViTinh().getTenDonViTinh());
+        entity.SanPham sp = dto.getSanPham() != null ? Mapper.map(dto.getSanPham(), entity.SanPham.class) : null;
+        return new entity.QuyCachDongGoi(dto.getMaQuyCach(), dvt, sp, dto.getHeSoQuyDoi(), dto.getTiLeGiam(),
                 dto.isDonViGoc(), dto.isTrangThai());
     }
 
-    private PhieuHuyDTO toPhieuHuyDTO(PhieuHuy entity) {
+    private PhieuHuyDTO toPhieuHuyDTO(entity.PhieuHuy entity) {
         if (entity == null) return null;
         PhieuHuyDTO dto = new PhieuHuyDTO();
         dto.setMaPhieuHuy(entity.getMaPhieuHuy());
@@ -825,7 +852,7 @@ public class ClientHandler implements Runnable {
         return dto;
     }
 
-    private PhieuTraDTO toPhieuTraDTO(PhieuTra entity) {
+    private PhieuTraDTO toPhieuTraDTO(entity.PhieuTra entity) {
         if (entity == null) return null;
         PhieuTraDTO dto = new PhieuTraDTO();
         dto.setMaPhieuTra(entity.getMaPhieuTra());
@@ -844,7 +871,7 @@ public class ClientHandler implements Runnable {
         return dto;
     }
 
-    private ChiTietPhieuTraDTO toChiTietPhieuTraDTO(ChiTietPhieuTra entity) {
+    private ChiTietPhieuTraDTO toChiTietPhieuTraDTO(entity.ChiTietPhieuTra entity) {
         if (entity == null) return null;
         ChiTietPhieuTraDTO dto = new ChiTietPhieuTraDTO();
         dto.setMaPhieuTra(entity.getId() != null ? entity.getId().getMaPhieuTra() : null);

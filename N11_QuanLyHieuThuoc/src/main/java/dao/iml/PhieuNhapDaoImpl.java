@@ -24,8 +24,12 @@ public class PhieuNhapDaoImpl
     public List<PhieuNhap> layDanhSachPhieuNhap() {
         return doInTransaction(em ->
                 new ArrayList<>(em.createQuery(
-                        "SELECT p FROM PhieuNhap p " +
+                        "SELECT DISTINCT p FROM PhieuNhap p " +
                         "JOIN FETCH p.nhanVien JOIN FETCH p.nhaCungCap " +
+                        "LEFT JOIN FETCH p.chiTietPhieuNhapList ct " +
+                        "LEFT JOIN FETCH ct.loSanPham lo " +
+                        "LEFT JOIN FETCH lo.sanPham " +
+                        "LEFT JOIN FETCH ct.donViTinh " +
                         "ORDER BY p.ngayNhap DESC",
                         PhieuNhap.class).getResultList())
         );
@@ -38,17 +42,18 @@ public class PhieuNhapDaoImpl
     public PhieuNhap timPhieuNhapTheoMa(String maPhieuNhap) {
         return doInTransaction(em -> {
             List<PhieuNhap> list = em.createQuery(
-                    "SELECT p FROM PhieuNhap p " +
+                    "SELECT DISTINCT p FROM PhieuNhap p " +
                     "JOIN FETCH p.nhanVien JOIN FETCH p.nhaCungCap " +
+                    "LEFT JOIN FETCH p.chiTietPhieuNhapList ct " +
+                    "LEFT JOIN FETCH ct.loSanPham lo " +
+                    "LEFT JOIN FETCH lo.sanPham " +
+                    "LEFT JOIN FETCH ct.donViTinh " +
                     "WHERE p.maPhieuNhap = :ma",
                     PhieuNhap.class)
                     .setParameter("ma", maPhieuNhap)
                     .getResultList();
             if (list.isEmpty()) return null;
-            PhieuNhap pn = list.get(0);
-            // Khởi tạo lazy collection chi tiết trong cùng transaction
-            pn.getChiTietPhieuNhapList().size();
-            return pn;
+            return list.get(0);
         });
     }
 
@@ -128,8 +133,12 @@ public class PhieuNhapDaoImpl
         String kw = "%" + keyword.trim() + "%";
         return doInTransaction(em ->
                 new ArrayList<>(em.createQuery(
-                        "SELECT p FROM PhieuNhap p " +
+                        "SELECT DISTINCT p FROM PhieuNhap p " +
                         "JOIN FETCH p.nhanVien nv JOIN FETCH p.nhaCungCap ncc " +
+                        "LEFT JOIN FETCH p.chiTietPhieuNhapList ct " +
+                        "LEFT JOIN FETCH ct.loSanPham lo " +
+                        "LEFT JOIN FETCH lo.sanPham " +
+                        "LEFT JOIN FETCH ct.donViTinh " +
                         "WHERE (p.maPhieuNhap LIKE :kw OR ncc.tenNhaCungCap LIKE :kw OR nv.tenNhanVien LIKE :kw) " +
                         "AND p.ngayNhap BETWEEN :start AND :end",
                         PhieuNhap.class)
@@ -147,8 +156,12 @@ public class PhieuNhapDaoImpl
     public List<PhieuNhap> layPhieuNhapTheoNhaCungCap(String maNCC) {
         return doInTransaction(em ->
                 new ArrayList<>(em.createQuery(
-                        "SELECT p FROM PhieuNhap p JOIN FETCH p.nhanVien " +
+                        "SELECT DISTINCT p FROM PhieuNhap p JOIN FETCH p.nhanVien " +
                         "JOIN FETCH p.nhaCungCap ncc " +
+                        "LEFT JOIN FETCH p.chiTietPhieuNhapList ct " +
+                        "LEFT JOIN FETCH ct.loSanPham lo " +
+                        "LEFT JOIN FETCH lo.sanPham " +
+                        "LEFT JOIN FETCH ct.donViTinh " +
                         "WHERE ncc.maNhaCungCap = :maNCC ORDER BY p.ngayNhap DESC",
                         PhieuNhap.class)
                         .setParameter("maNCC", maNCC)

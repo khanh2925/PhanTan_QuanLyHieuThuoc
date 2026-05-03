@@ -1,7 +1,6 @@
 package network;
 
 import dto.*;
-import dto.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -1619,11 +1618,32 @@ public class ClientService {
         km.setNgayKetThuc(parseDate(dto.getNgayKetThuc()));
         km.setTrangThai(dto.isTrangThai());
         km.setKhuyenMaiHoaDon(dto.isKhuyenMaiHoaDon());
-        km.setHinhThuc(HinhThucKM.valueOf(dto.getHinhThuc()));
+        km.setHinhThuc(parseHinhThucKM(dto.getHinhThuc()));
         km.setGiaTri(dto.getGiaTri());
         km.setDieuKienApDungHoaDon(dto.getDieuKienApDungHoaDon());
         km.setSoLuongKhuyenMai(dto.getSoLuongKhuyenMai());
         return km;
+    }
+
+    private HinhThucKM parseHinhThucKM(String value) {
+        if (value == null || value.isBlank()) {
+            return HinhThucKM.GIAM_GIA_PHAN_TRAM;
+        }
+        String normalized = value.trim();
+        for (HinhThucKM hinhThuc : HinhThucKM.values()) {
+            if (hinhThuc.name().equalsIgnoreCase(normalized)
+                    || hinhThuc.getMoTa().equalsIgnoreCase(normalized)
+                    || hinhThuc.toString().equalsIgnoreCase(normalized)) {
+                return hinhThuc;
+            }
+        }
+        String ascii = java.text.Normalizer.normalize(normalized, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(java.util.Locale.ROOT);
+        if (ascii.contains("tien")) {
+            return HinhThucKM.GIAM_GIA_TIEN;
+        }
+        return HinhThucKM.GIAM_GIA_PHAN_TRAM;
     }
 
     private KhuyenMaiDTO toKhuyenMaiDTO(KhuyenMai km) {
