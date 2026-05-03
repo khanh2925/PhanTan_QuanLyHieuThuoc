@@ -47,7 +47,7 @@ public class ItemDonHang implements Serializable {
     public boolean isCoHangTang() { return coHangTang; }
 
     public String getTenKhuyenMai() {
-        return khuyenMai != null ? khuyenMai.getKhuyenMai().getTenKM() : "Không có KM";
+        return coKhuyenMaiHopLe() ? khuyenMai.getKhuyenMai().getTenKM() : "Không có KM";
     }
 
     public String getTenSanPham() { return sanPham.getTenSanPham(); }
@@ -86,7 +86,7 @@ public class ItemDonHang implements Serializable {
         int heSo = getHeSoQuyCach();
         double tienGiamTren1DonVi = 0;
 
-        if (this.khuyenMai != null) {
+        if (coKhuyenMaiHopLe()) {
             String hinhThuc = this.khuyenMai.getKhuyenMai().getHinhThuc().name();
             double giaTriKM = this.khuyenMai.getKhuyenMai().getGiaTri();
             if (hinhThuc.equals("GIAM_GIA_PHAN_TRAM")) {
@@ -126,7 +126,7 @@ public class ItemDonHang implements Serializable {
     }
 
     public String getTooltipKM() {
-        if (khuyenMai == null) return null;
+        if (!coKhuyenMaiHopLe()) return null;
         String hinhThuc = khuyenMai.getKhuyenMai().getHinhThuc().name();
         double giaTri = khuyenMai.getKhuyenMai().getGiaTri();
         if (hinhThuc.equals("GIAM_GIA_PHAN_TRAM")) {
@@ -146,7 +146,7 @@ public class ItemDonHang implements Serializable {
     }
 
     public String getTextKM() {
-        if (khuyenMai == null) return "Không có KM";
+        if (!coKhuyenMaiHopLe()) return "Không có KM";
         String hinhThuc = khuyenMai.getKhuyenMai().getHinhThuc().name();
         double giaTri = khuyenMai.getKhuyenMai().getGiaTri();
         if (hinhThuc.equals("GIAM_GIA_PHAN_TRAM")) {
@@ -155,5 +155,11 @@ public class ItemDonHang implements Serializable {
             return "Giảm " + DF.format(giaTri) + "/đv";
         }
         return "Không có KM";
+    }
+
+    private boolean coKhuyenMaiHopLe() {
+        return khuyenMai != null
+                && khuyenMai.getKhuyenMai() != null
+                && khuyenMai.getKhuyenMai().getHinhThuc() != null;
     }
 }

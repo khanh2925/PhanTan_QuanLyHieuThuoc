@@ -512,9 +512,15 @@ public class ClientService {
     }
 
     public java.util.List<KhuyenMai> getActiveKhuyenMai() {
-        java.util.List<KhuyenMai> result = new java.util.ArrayList<>();
-        for (KhuyenMai km : getAllKhuyenMaiEntity()) if (km.isDangHoatDong()) result.add(km);
-        return result;
+        Response r = sendReq(CommandType.KHUYENMAI_LAY_DANG_HOAT_DONG, null);
+        if (r != null && r.isSuccess() && r.getData() instanceof java.util.List<?> raw) {
+            java.util.List<KhuyenMai> result = new java.util.ArrayList<>();
+            for (Object item : raw) {
+                if (item instanceof KhuyenMaiDTO dto) result.add(toKhuyenMai(dto));
+            }
+            return result;
+        }
+        return java.util.Collections.emptyList();
     }
 
     public boolean reduceKhuyenMaiQuantity(String maKM) {
@@ -880,8 +886,7 @@ public class ClientService {
     }
 
     public HoaDon getHoaDonEntityByCode(String maHD) {
-        Object hd = getHoaDonByCode(maHD);
-        return hd instanceof HoaDonDTO dto ? toHoaDon(dto) : null;
+        return getHoaDonByCode(maHD);
     }
 
     public List<PhieuTra> getAllPhieuTraEntity() {
@@ -1663,7 +1668,16 @@ public class ClientService {
     }
 
     private ChiTietKhuyenMaiSanPham toChiTietKhuyenMaiSanPham(ChiTietKhuyenMaiSanPhamDTO dto) {
-        return new ChiTietKhuyenMaiSanPham(new SanPham(dto.getMaSanPham()), new KhuyenMai(dto.getMaKM()));
+        KhuyenMai km = new KhuyenMai();
+        km.setMaKM(dto.getMaKM());
+        km.setTenKM(dto.getTenKM());
+        km.setHinhThuc(parseHinhThucKM(dto.getHinhThuc()));
+        km.setGiaTri(dto.getGiaTri());
+        km.setNgayBatDau(parseDate(dto.getNgayBatDau()));
+        km.setNgayKetThuc(parseDate(dto.getNgayKetThuc()));
+        km.setTrangThai(dto.isDangHoatDong());
+        km.setKhuyenMaiHoaDon(false);
+        return new ChiTietKhuyenMaiSanPham(new SanPham(dto.getMaSanPham()), km);
     }
 
     private HoaDon toHoaDon(HoaDonDTO dto) {

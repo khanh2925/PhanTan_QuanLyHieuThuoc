@@ -241,8 +241,21 @@ public final class Mapper {
 
     private static ChiTietKhuyenMaiSanPham toChiTietKhuyenMaiSanPham(ChiTietKhuyenMaiSanPhamDTO dto) {
         ChiTietKhuyenMaiSanPham chiTiet = new ChiTietKhuyenMaiSanPham();
-        chiTiet.setSanPham(new SanPham(dto.getMaSanPham()));
-        chiTiet.setKhuyenMai(new KhuyenMai(dto.getMaKM()));
+        if (hasText(dto.getMaSanPham())) {
+            chiTiet.setSanPham(new SanPham(dto.getMaSanPham()));
+        }
+        if (hasText(dto.getMaKM())) {
+            KhuyenMai khuyenMai = new KhuyenMai();
+            khuyenMai.setMaKM(dto.getMaKM());
+            khuyenMai.setTenKM(dto.getTenKM());
+            khuyenMai.setHinhThuc(parseHinhThucKM(dto.getHinhThuc()));
+            khuyenMai.setGiaTri(dto.getGiaTri());
+            khuyenMai.setNgayBatDau(parseDisplayDate(dto.getNgayBatDau()));
+            khuyenMai.setNgayKetThuc(parseDisplayDate(dto.getNgayKetThuc()));
+            khuyenMai.setTrangThai(dto.isDangHoatDong());
+            khuyenMai.setKhuyenMaiHoaDon(false);
+            chiTiet.setKhuyenMai(khuyenMai);
+        }
         return chiTiet;
     }
 
@@ -352,8 +365,8 @@ public final class Mapper {
         SanPhamDTO dto = new SanPhamDTO();
         dto.setMaSanPham(sp.getMaSanPham());
         dto.setTenSanPham(sp.getTenSanPham());
-        dto.setLoaiSanPham(sp.getLoaiSanPham() != null ? sp.getLoaiSanPham().getTenLoai() : null);
-        dto.setDuongDung(sp.getDuongDung() != null ? sp.getDuongDung().getTenDuongDung() : null);
+        dto.setLoaiSanPham(sp.getLoaiSanPham() != null ? sp.getLoaiSanPham().name() : null);
+        dto.setDuongDung(sp.getDuongDung() != null ? sp.getDuongDung().name() : null);
         dto.setSoDangKy(sp.getSoDangKy());
         dto.setGiaNhap(sp.getGiaNhap());
         dto.setGiaBan(sp.getGiaBan());
@@ -514,7 +527,7 @@ public final class Mapper {
         if (ct.getKhuyenMai() != null) {
             dto.setMaKM(ct.getKhuyenMai().getMaKM());
             dto.setTenKM(ct.getKhuyenMai().getTenKM());
-            dto.setHinhThuc(ct.getKhuyenMai().getHinhThuc() != null ? ct.getKhuyenMai().getHinhThuc().getMoTa() : null);
+            dto.setHinhThuc(ct.getKhuyenMai().getHinhThuc() != null ? ct.getKhuyenMai().getHinhThuc().name() : null);
             dto.setGiaTri(ct.getKhuyenMai().getGiaTri());
             dto.setNgayBatDau(formatDate(ct.getKhuyenMai().getNgayBatDau()));
             dto.setNgayKetThuc(formatDate(ct.getKhuyenMai().getNgayKetThuc()));

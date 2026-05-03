@@ -630,13 +630,8 @@ public class TraCuuPhieuHuy_GUI extends JPanel implements ActionListener {
         // 2. Load lại danh sách phiếu hủy từ DB
         taiDanhSachPhieuHuy();
 
-        // 3. Đến ngày: Hôm nay
-        Date now = new Date();
-        dateDenNgay.setDate(now);
-
-        // 4. Từ ngày: 30 ngày trước mặc định
-        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
-        dateTuNgay.setDate(Date.from(thirtyDaysAgo.atStartOfDay(ZoneId.systemDefault()).toInstant()));
+        dateTuNgay.setDate(null);
+        dateDenNgay.setDate(null);
 
         // 5. Trạng thái = Tất cả
         cbTrangThai.setSelectedIndex(0);
@@ -659,7 +654,7 @@ public class TraCuuPhieuHuy_GUI extends JPanel implements ActionListener {
                     stt++,
                     ph.getMaPhieuHuy(),
                     (ph.getNhanVien() != null) ? ph.getNhanVien().getTenNhanVien() : "",
-                    fmt.format(ph.getNgayLapPhieu()),
+                    ph.getNgayLapPhieu() != null ? fmt.format(ph.getNgayLapPhieu()) : "",
                     df.format(ph.getTongTien()),
                     ph.getTrangThaiText()
             });
