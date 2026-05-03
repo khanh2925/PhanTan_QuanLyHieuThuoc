@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile *)",
+      "Bash(\"C:/Program Files/NetBeans-24/netbeans/java/maven/bin/mvn\" compile)",
+      "Bash(where mvn *)",
+      "Bash(find /c/Program* /d/Program* -name \"mvn\" -type f)",
+      "Bash(\"/c/Program Files/JetBrains/IntelliJ IDEA 2026.1/plugins/maven/lib/maven3/bin/mvn\" compile)",
+      "Bash(export JAVA_HOME=\"/c/Users/khanh/.jdks/ms-17.0.18\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)",
+      "Bash(/c/Users/khanh/.local/bin/python3.12.exe -c ' *)",
+      "Bash(/c/Users/khanh/.local/bin/python3.12.exe -m pip install pdfplumber -q)",
+      "Bash(/c/Users/khanh/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe -m pip install pdfplumber -q)",
+      "Bash(/c/Users/khanh/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe -c ' *)",
+      "Bash(\"/c/Program Files/JetBrains/IntelliJ IDEA 2026.1/plugins/maven/lib/maven3/bin/mvn\" compile -q)",
+      "Bash(xargs -I{} basename {} .java)",
+      "Bash(git remote *)",
+      "Bash(git add *)"
+    ]
+  }
+}
