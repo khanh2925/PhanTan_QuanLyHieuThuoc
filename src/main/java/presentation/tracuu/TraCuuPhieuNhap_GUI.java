@@ -110,7 +110,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         dateTuNgay.setDateFormatString("dd/MM/yyyy");
         dateTuNgay.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         dateTuNgay.setBounds(610, 28, 180, 38);
-        dateTuNgay.setDate(java.sql.Date.valueOf(LocalDate.now().minusDays(30)));
+        dateTuNgay.setDate(null);
         pnHeader.add(dateTuNgay);
 
         JLabel lblDen = new JLabel("Đến:");
@@ -122,7 +122,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         dateDenNgay.setDateFormatString("dd/MM/yyyy");
         dateDenNgay.setFont(new Font("Segoe UI", Font.PLAIN, 18));
         dateDenNgay.setBounds(890, 28, 180, 38);
-        dateDenNgay.setDate(new Date());
+        dateDenNgay.setDate(null);
         pnHeader.add(dateDenNgay);
 
         btnTimKiem = new PillButton(
@@ -437,9 +437,9 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
             modelPhieuNhap.addRow(new Object[] {
                     stt++,
                     pn.getMaPhieuNhap(),
-                    pn.getNgayNhap().format(fmt),
-                    pn.getNhanVien().getTenNhanVien(),
-                    pn.getNhaCungCap().getTenNhaCungCap(),
+                    pn.getNgayNhap() != null ? pn.getNgayNhap().format(fmt) : "",
+                    pn.getNhanVien() != null ? pn.getNhanVien().getTenNhanVien() : "N/A",
+                    pn.getNhaCungCap() != null ? pn.getNhaCungCap().getTenNhaCungCap() : "N/A",
                     df.format(pn.getTongTien())
             });
         }
@@ -522,17 +522,12 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
         Date tuNgay = dateTuNgay.getDate();
         Date denNgay = dateDenNgay.getDate();
 
-        if (tuNgay == null || denNgay == null) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc!");
-            return;
-        }
-
         modelPhieuNhap.setRowCount(0);
         List<PhieuNhap> listPN = layDanhSachPhieuNhap();
         if (!listPN.isEmpty()) {
             String kw = keyword == null ? "" : keyword.trim().toLowerCase();
-            LocalDate tu = tuNgay.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
-            LocalDate den = denNgay.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+            LocalDate tu = tuNgay != null ? tuNgay.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : LocalDate.MIN;
+            LocalDate den = denNgay != null ? denNgay.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : LocalDate.MAX;
             List<PhieuNhap> filtered = new java.util.ArrayList<>();
             for (PhieuNhap pn : listPN) {
                 boolean inRange = pn.getNgayNhap() != null && !pn.getNgayNhap().isBefore(tu) && !pn.getNgayNhap().isAfter(den);
@@ -547,7 +542,7 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
             }
             listPN = filtered;
         }
-        if (listPN == null || listPN.isEmpty()) listPN = phieuNhapDaoImpl.timKiemPhieuNhap(keyword, tuNgay, denNgay);
+        if (listPN == null || listPN.isEmpty()) listPN = (tuNgay != null && denNgay != null) ? phieuNhapDaoImpl.timKiemPhieuNhap(keyword, tuNgay, denNgay) : java.util.Collections.emptyList();
 
         if (listPN == null || listPN.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Không tìm thấy phiếu nhập nào phù hợp!");
@@ -559,9 +554,9 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
             modelPhieuNhap.addRow(new Object[] {
                     stt++,
                     pn.getMaPhieuNhap(),
-                    pn.getNgayNhap().format(fmt),
-                    pn.getNhanVien().getTenNhanVien(),
-                    pn.getNhaCungCap().getTenNhaCungCap(),
+                    pn.getNgayNhap() != null ? pn.getNgayNhap().format(fmt) : "",
+                    pn.getNhanVien() != null ? pn.getNhanVien().getTenNhanVien() : "N/A",
+                    pn.getNhaCungCap() != null ? pn.getNhaCungCap().getTenNhaCungCap() : "N/A",
                     df.format(pn.getTongTien())
             });
         }
@@ -570,8 +565,8 @@ public class TraCuuPhieuNhap_GUI extends JPanel implements ActionListener, Mouse
     private void xuLyLamMoi() {
         txtTimKiem.setText("");
         PlaceholderSupport.addPlaceholder(txtTimKiem, "Tìm theo mã PN, tên nhân viên, nhà cung cấp...(F1 / Ctrl+F)");
-        dateTuNgay.setDate(java.sql.Date.valueOf(LocalDate.now().minusDays(30)));
-        dateDenNgay.setDate(new Date());
+        dateTuNgay.setDate(null);
+        dateDenNgay.setDate(null);
         taiDuLieuPhieuNhap();
         modelChiTiet.setRowCount(0);
     }

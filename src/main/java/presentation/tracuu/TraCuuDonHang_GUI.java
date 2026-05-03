@@ -412,17 +412,8 @@ public class TraCuuDonHang_GUI extends JPanel implements ActionListener {
 
         PlaceholderSupport.addPlaceholder(txtTimKiem, "Tìm theo mã hóa đơn, SĐT khách hàng (F1 / Ctrl+F)");
         
-        // --- CHỌN NGÀY MẶC ĐỊNH ---
-        Calendar cal = Calendar.getInstance();
-        
-        // Đến ngày: Hôm nay
-        Date now = cal.getTime();
-        dateDenNgay.setDate(now);
-        
-        // Từ ngày: 30 ngày trước
-        cal.add(Calendar.DAY_OF_MONTH, -30);
-        Date d30 = cal.getTime();
-        dateTuNgay.setDate(d30);
+        dateTuNgay.setDate(null);
+        dateDenNgay.setDate(null);
         
         // TỐI ƯU: Chỉ load DB lần đầu, sau đó dùng cache (giống Tra Cứu Phiếu Trả)
         if (allHoaDon == null || allHoaDon.isEmpty()) {
@@ -533,9 +524,9 @@ public class TraCuuDonHang_GUI extends JPanel implements ActionListener {
             List<HoaDon> ketQuaLocNgay = new ArrayList<>();
             for (HoaDon hd : ketQua) {
                 LocalDate ngayLap = hd.getNgayLap();
-                // So sánh ngày: fromDate <= ngayLap <= toDate
-                if ((ngayLap.isEqual(fromDate) || ngayLap.isAfter(fromDate)) &&
-                    (ngayLap.isEqual(toDate) || ngayLap.isBefore(toDate))) {
+                if (ngayLap != null
+                        && (ngayLap.isEqual(fromDate) || ngayLap.isAfter(fromDate))
+                        && (ngayLap.isEqual(toDate) || ngayLap.isBefore(toDate))) {
                     ketQuaLocNgay.add(hd);
                 }
             }
@@ -568,7 +559,7 @@ public class TraCuuDonHang_GUI extends JPanel implements ActionListener {
                 tenKH,
                 sdtKH,
                 tenNV,
-                dtf.format(hd.getNgayLap()),
+                hd.getNgayLap() != null ? dtf.format(hd.getNgayLap()) : "",
                 df.format(hd.getTongThanhToan())
             });
         }
