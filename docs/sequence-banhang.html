@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Sơ đồ tuần tự - Bán hàng (Client/Server)</title>
+<style>
+  body {
+    font-family: "Segoe UI", Tahoma, sans-serif;
+    margin: 24px;
+    background: #fafafa;
+    color: #222;
+  }
+  h1 { margin: 0 0 4px 0; font-size: 22px; }
+  .sub { color: #666; margin-bottom: 16px; }
+  .toolbar {
+    margin: 12px 0;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 6px 14px;
+    border: 1px solid #888;
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { background: #eef; }
+  .legend {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .legend code {
+    background: #f0f0f0;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .diagram-wrap {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px;
+    overflow: auto;
+    min-height: 300px;
+  }
+  .diagram-wrap svg { max-width: none; }
+  .loading { color: #888; padding: 30px; text-align: center; }
+  .err { color: #b00; padding: 12px; background: #fee; border-radius: 4px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<h1>Sơ đồ tuần tự - Chức năng Bán hàng</h1>
+<div class="sub">Kiến trúc Client/Server qua socket DTO. Render bằng PlantUML qua kroki.io.</div>
+
+<div class="legend">
+  <b>Ký hiệu:</b>
+  <code>actor</code> = người dùng &nbsp;|&nbsp;
+  <code>boundary</code> = giao diện Swing &nbsp;|&nbsp;
+  <code>control</code> = Service / facade &nbsp;|&nbsp;
+  <code>participant</code> = truyền tải socket &nbsp;|&nbsp;
+  <code>entity</code> = DAO Layer &nbsp;|&nbsp;
+  <code>database</code> = MariaDB.
+</div>
+
+<div class="toolbar">
+  <button onclick="exportSvg()">Tải SVG</button>
+  <button onclick="exportPng()">Tải PNG</button>
+  <button onclick="window.print()">In / Lưu PDF</button>
+  <button onclick="copySource()">Copy mã PlantUML</button>
+</div>
+
+<div class="diagram-wrap" id="diagramWrap">
+  <div class="loading">Đang tải sơ đồ từ kroki.io...</div>
+</div>
+
+<pre id="src" hidden>
+@startuml
+title Sơ đồ tuần tự - Chức năng Bán hàng (Client/Server)
+
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam ParticipantPadding 14
+skinparam BoxPadding 10
+skinparam sequenceMessageAlign center
+skinparam DefaultFontSize 14
+skinparam TitleFontSize 18
+skinparam SequenceGroupFontSize 16
+skinparam SequenceMessageFontSize 14
+skinparam ParticipantFontSize 14
+skinparam ActorFontSize 14
+skinparam DatabaseFontSize 14
+skinparam ArrowThickness 1.2
+
+actor "Nhân viên" as NV
+box "Client" #EAF4FF
+boundary "BanHang_GUI" as GUI
+control "ClientService" as Svc
+participant "ClientSocket" as Sock
+end box
+box "Server" #FFF6E5
+participant "ClientHandler" as Handler
+control "SanPhamService" as SPSvc
+control "LoSanPhamService" as LoSvc
+control "QuyCachDongGoiService" as QCSvc
+control "KhuyenMaiService" as KMSvc
+control "KhachHangService" as KHSvc
+control "BangGiaService" as BGSvc
+control "HoaDonService" as HDSvc
+entity "DAO Layer\n(JPA / Hibernate)" as DAO
+database "MariaDB" as DB
+end box
+
+== 1. Nhân viên nhập mã SP / Số ĐK ==
+NV -> GUI : <b>1:</b> Nhập mã SP / Số ĐK
+GUI -> Svc : <b>1.1:</b> getProductByCode(maSP)
+Svc -> Sock : <b>1.1.1:</b> Request(SANPHAM_LAY_THEO_MA, maSP)
+Sock -> Handler : <b>1.1.2:</b> send(Request)
+Handler -> SPSvc : <b>1.1.3:</b> laySanPhamTheoMa(maSP)
+SPSvc -> DAO : <b>1.1.4:</b> timSanPhamTheoMa(maSP)
+DAO -> DB : <b>1.1.5:</b> SELECT FROM SanPham WHERE maSanPham = ?
+DB --> DAO : <b>1.1.6:</b> row
+DAO --> SPSvc : <b>1.1.7:</b> SanPham
+SPSvc --> Handler : <b>1.1.8:</b> SanPhamDTO
+Handler --> Sock : <b>1.1.9:</b> Response(SanPhamDTO)
+Sock --> Svc : <b>1.1.10:</b> Response
+Svc --> GUI : <b>1.2:</b> SanPhamDTO
+
+alt Tìm thấy sản phẩm
+  GUI -> Svc : <b>1.3:</b> getLotsByProduct(maSP)
+  Svc -> Sock : <b>1.3.1:</b> Request(LO_LAY_THEO_SAN_PHAM, maSP)
+  Sock -> Handler : <b>1.3.2:</b> send(Request)
+  Handler -> LoSvc : <b>1.3.3:</b> layLoConHangTheoSanPham(maSP)
+  LoSvc -> DAO : <b>1.3.4:</b> timLoConHang(maSP)
+  DAO -> DB : <b>1.3.5:</b> SELECT lô còn HSD AND soLuongTon > 0
+  DB --> DAO : <b>1.3.6:</b> rows
+  DAO --> LoSvc : <b>1.3.7:</b> List<LoSanPham>
+  LoSvc --> Handler : <b>1.3.8:</b> List<LoSanPhamDTO>
+  Handler --> Sock : <b>1.3.9:</b> Response(List<LoSanPhamDTO>)
+  Sock --> Svc : <b>1.3.10:</b> Response
+  Svc --> GUI : <b>1.4:</b> dsLoSanPham
+
+  GUI -> Svc : <b>1.5:</b> getPackagingRulesByProduct(maSP)
+  Svc -> Sock : <b>1.5.1:</b> Request(QUYCACH_LAY_THEO_SAN_PHAM, maSP)
+  Sock -> Handler : <b>1.5.2:</b> send(Request)
+  Handler -> QCSvc : <b>1.5.3:</b> layQuyCachTheoSanPham(maSP)
+  QCSvc -> DAO : <b>1.5.4:</b> SELECT FROM QuyCachDongGoi WHERE maSanPham = ?
+  DAO -> DB : <b>1.5.5:</b> SELECT
+  DB --> DAO : <b>1.5.6:</b> rows
+  DAO --> QCSvc : <b>1.5.7:</b> List<QuyCachDongGoi>
+  QCSvc --> Handler : <b>1.5.8:</b> List<QuyCachDongGoiDTO>
+  Handler --> Sock : <b>1.5.9:</b> Response(List<QuyCachDongGoiDTO>)
+  Sock --> Svc : <b>1.5.10:</b> Response
+  Svc --> GUI : <b>1.6:</b> dsQuyCach
+
+  GUI -> Svc : <b>1.7:</b> getActivePromotionDetailsByProduct(maSP)
+  Svc -> Sock : <b>1.7.1:</b> Request(KHUYENMAI_CHI_TIET_DANG_AP_DUNG, maSP)
+  Sock -> Handler : <b>1.7.2:</b> send(Request)
+  Handler -> KMSvc : <b>1.7.3:</b> timKMSanPham(maSP)
+  KMSvc -> DAO : <b>1.7.4:</b> timKMTheoSanPham(maSP)
+  DAO -> DB : <b>1.7.5:</b> SELECT FROM ChiTietKhuyenMaiSanPham JOIN KhuyenMai
+  DB --> DAO : <b>1.7.6:</b> rows
+  DAO --> KMSvc : <b>1.7.7:</b> List<ChiTietKhuyenMaiSanPham>
+  KMSvc --> Handler : <b>1.7.8:</b> List<ChiTietKhuyenMaiSanPhamDTO>
+  Handler --> Sock : <b>1.7.9:</b> Response(List<DTO>)
+  Sock --> Svc : <b>1.7.10:</b> Response
+  Svc --> GUI : <b>1.8:</b> kmSanPham
+
+  GUI -> Svc : <b>1.9:</b> getBangGiaDangHoatDong()
+  Svc -> Sock : <b>1.9.1:</b> Request(BANGGIA_LAY_HOAT_DONG)
+  Sock -> Handler : <b>1.9.2:</b> send(Request)
+  Handler -> BGSvc : <b>1.9.3:</b> layBangGiaHoatDong()
+  BGSvc -> DAO : <b>1.9.4:</b> truy vấn BangGia đang hoạt động
+  DAO -> DB : <b>1.9.5:</b> SELECT FROM BangGia WHERE hoatDong = true
+  DB --> DAO : <b>1.9.6:</b> row
+  DAO --> BGSvc : <b>1.9.7:</b> BangGia
+  BGSvc --> Handler : <b>1.9.8:</b> BangGiaDTO
+  Handler --> Sock : <b>1.9.9:</b> Response(BangGiaDTO)
+  Sock --> Svc : <b>1.9.10:</b> Response
+  Svc --> GUI : <b>1.10:</b> bangGia
+
+  GUI --> NV : <b>1.11:</b> Hiển thị thông tin sản phẩm
+else Không tìm thấy / hết hàng / thiếu quy cách
+  GUI --> NV : <b>1.12:</b> Thông báo lỗi
+end
+
+== 2. Nhân viên nhập số lượng và kiểm tra khuyến mãi ==
+NV -> GUI : <b>2:</b> Nhập số lượng
+GUI -> GUI : <b>2.1:</b> Kiểm tra số lượng từ dsLo
+alt Đủ số lượng
+  GUI -> GUI : <b>2.2:</b> Cập nhật tổng tiền
+  GUI -> Svc : <b>2.3:</b> getActiveKhuyenMai(tongTien)
+  Svc -> Sock : <b>2.3.1:</b> Request(KHUYENMAI_LAY_DANG_AP_DUNG, tongTien)
+  Sock -> Handler : <b>2.3.2:</b> send(Request)
+  Handler -> KMSvc : <b>2.3.3:</b> timKhuyenMaiHoaDonPhuHop(tongTien)
+  KMSvc -> DAO : <b>2.3.4:</b> timKMHoaDon(tongTien)
+  DAO -> DB : <b>2.3.5:</b> SELECT KM hóa đơn còn hiệu lực
+  DB --> DAO : <b>2.3.6:</b> rows
+  DAO --> KMSvc : <b>2.3.7:</b> List<KhuyenMai>
+  KMSvc --> Handler : <b>2.3.8:</b> List<KhuyenMaiDTO>
+  Handler --> Sock : <b>2.3.9:</b> Response(List<DTO>)
+  Sock --> Svc : <b>2.3.10:</b> Response
+  Svc --> GUI : <b>2.4:</b> KhuyenMaiHoaDon
+  GUI --> NV : <b>2.5:</b> Hiển thị thành tiền
+else Không đủ số lượng
+  GUI --> NV : <b>2.6:</b> Thông báo không đủ tồn
+end
+
+== 3. Nhân viên nhập SĐT khách hàng ==
+NV -> GUI : <b>3:</b> Nhập SĐT khách
+GUI -> Svc : <b>3.1:</b> getKhachHangByPhone(sdt)
+Svc -> Sock : <b>3.1.1:</b> Request(KHACHHANG_TIM_THEO_SDT, sdt)
+Sock -> Handler : <b>3.1.2:</b> send(Request)
+Handler -> KHSvc : <b>3.1.3:</b> timKhachHangTheoSDT(sdt)
+KHSvc -> DAO : <b>3.1.4:</b> timTheoSDT(sdt)
+DAO -> DB : <b>3.1.5:</b> SELECT FROM KhachHang WHERE soDienThoai = ?
+DB --> DAO : <b>3.1.6:</b> row | null
+DAO --> KHSvc : <b>3.1.7:</b> KhachHang
+KHSvc --> Handler : <b>3.1.8:</b> KhachHangDTO
+Handler --> Sock : <b>3.1.9:</b> Response(KhachHangDTO)
+Sock --> Svc : <b>3.1.10:</b> Response
+Svc --> GUI : <b>3.2:</b> KhachHang
+alt Có khách hàng
+  GUI --> NV : <b>3.3:</b> Hiển thị thông tin khách hàng
+else Không có
+  GUI -> GUI : <b>3.4:</b> Set khách vãng lai
+end
+
+== 4. Nhân viên nhập tiền khách đưa ==
+NV -> GUI : <b>4:</b> Nhập tiền khách đưa
+GUI -> GUI : <b>4.1:</b> Kiểm tra tiền hợp lệ
+alt Tiền hợp lệ
+  GUI --> NV : <b>4.2:</b> Tính và hiển thị tiền thừa
+else Tiền không hợp lệ
+  GUI --> NV : <b>4.3:</b> Yêu cầu nhập lại
+end
+
+== 5. Nhân viên bấm thanh toán ==
+NV -> GUI : <b>5:</b> Bấm Thanh toán
+GUI -> Svc : <b>5.1:</b> taoMaHoaDon()
+Svc -> Sock : <b>5.1.1:</b> Request(HOADON_TAO_MA)
+Sock -> Handler : <b>5.1.2:</b> send(Request)
+Handler -> HDSvc : <b>5.1.3:</b> taoMaHoaDonTuDong()
+HDSvc -> DAO : <b>5.1.4:</b> taoMaHoaDon()
+DAO -> DB : <b>5.1.5:</b> SELECT MAX(maHoaDon)
+DB --> DAO : <b>5.1.6:</b> maxId
+DAO --> HDSvc : <b>5.1.7:</b> maHD
+HDSvc --> Handler : <b>5.1.8:</b> maHD
+Handler --> Sock : <b>5.1.9:</b> Response(maHD)
+Sock --> Svc : <b>5.1.10:</b> Response
+Svc --> GUI : <b>5.2:</b> maHD
+
+GUI -> GUI : <b>5.3:</b> Build HoaDon + ChiTietHoaDon
+GUI -> Svc : <b>5.4:</b> createHoaDon(hd)
+Svc -> Sock : <b>5.4.1:</b> Request(HOADON_THEM, HoaDonCreateUpdateDTO)
+Sock -> Handler : <b>5.4.2:</b> send(Request)
+Handler -> HDSvc : <b>5.4.3:</b> themHoaDon(dto)
+HDSvc -> DAO : <b>5.4.4:</b> themHoaDon(entity)
+DAO -> DB : <b>5.4.5:</b> BEGIN TX
+DAO -> DB : <b>5.4.6:</b> INSERT HoaDon
+loop Mỗi chi tiết hóa đơn
+  DAO -> DB : <b>5.4.7:</b> INSERT ChiTietHoaDon
+  DAO -> DB : <b>5.4.8:</b> UPDATE LoSanPham SET soLuongTon = soLuongTon - ?
+end
+DAO -> DB : <b>5.4.9:</b> COMMIT
+DB --> DAO : <b>5.4.10:</b> OK
+DAO --> HDSvc : <b>5.4.11:</b> true
+HDSvc --> Handler : <b>5.4.12:</b> true
+Handler --> Sock : <b>5.4.13:</b> Response(success)
+Sock --> Svc : <b>5.4.14:</b> Response
+Svc --> GUI : <b>5.5:</b> ok
+
+opt Có khuyến mãi hóa đơn
+  GUI -> Svc : <b>5.6:</b> reduceKhuyenMaiQuantity(maKM)
+  Svc -> Sock : <b>5.6.1:</b> Request(KHUYENMAI_GIAM_SO_LUONG, maKM)
+  Sock -> Handler : <b>5.6.2:</b> send(Request)
+  Handler -> KMSvc : <b>5.6.3:</b> giamSoLuongKhuyenMai(maKM)
+  KMSvc -> DAO : <b>5.6.4:</b> capNhatSoLuongKM(maKM)
+  DAO -> DB : <b>5.6.5:</b> UPDATE KhuyenMai SET soLuongKhuyenMai = soLuongKhuyenMai - 1
+  DB --> DAO : <b>5.6.6:</b> OK
+  DAO --> KMSvc : <b>5.6.7:</b> true
+  KMSvc --> Handler : <b>5.6.8:</b> true
+  Handler --> Sock : <b>5.6.9:</b> Response(success)
+end
+
+alt Lưu thành công
+  GUI --> NV : <b>5.7:</b> Thông báo bán hàng thành công
+else Lỗi
+  GUI --> NV : <b>5.8:</b> Thông báo bán hàng có lỗi
+end
+
+@enduml
+</pre>
+
+<script>
+const wrap = document.getElementById("diagramWrap");
+const source = document.getElementById("src").textContent.trim();
+
+async function render() {
+  wrap.innerHTML = '<div class="loading">Đang tải sơ đồ từ kroki.io...</div>';
+  try {
+    const res = await fetch("https://kroki.io/plantuml/svg", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: source
+    });
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error("HTTP " + res.status + "\n" + txt);
+    }
+    wrap.innerHTML = await res.text();
+  } catch (err) {
+    wrap.innerHTML = '<div class="err">Lỗi render PlantUML:\n' + (err && err.message ? err.message : err) + '</div>';
+  }
+}
+
+function getSvgEl() {
+  return wrap.querySelector("svg");
+}
+
+function downloadBlob(blob, filename) {
+  if (!blob) return alert("Không tạo được file tải về.");
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+function exportSvg() {
+  const svg = getSvgEl();
+  if (!svg) return alert("Sơ đồ chưa render xong.");
+  const xml = new XMLSerializer().serializeToString(svg);
+  downloadBlob(new Blob([xml], { type: "image/svg+xml;charset=utf-8" }), "sequence-banhang.svg");
+}
+
+async function exportPng() {
+  try {
+    const res = await fetch("https://kroki.io/plantuml/png", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: source
+    });
+    if (!res.ok) throw new Error("HTTP " + res.status + "\n" + await res.text());
+    downloadBlob(await res.blob(), "sequence-banhang.png");
+  } catch (err) {
+    alert("Không tải được PNG từ Kroki: " + (err && err.message ? err.message : err));
+  }
+}
+
+function copySource() {
+  navigator.clipboard.writeText(source).then(
+    () => alert("Đã copy mã PlantUML."),
+    () => alert("Copy thất bại, hãy mở View Source và copy thủ công.")
+  );
+}
+
+render();
+</script>
+
+</body>
+</html>
