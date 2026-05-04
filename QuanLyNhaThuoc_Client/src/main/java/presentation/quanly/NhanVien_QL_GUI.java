@@ -628,8 +628,7 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 
 		// 3. Ngày sinh
 		if (dateNgaySinh.getDate() == null) {
-			JOptionPane.showMessageDialog(this, "Ngày sinh không được bỏ trống!", "Thông báo",
-					JOptionPane.WARNING_MESSAGE);
+			JOptionPane.showMessageDialog(this, "Ngày sinh không được bỏ trống!", "Thông báo", JOptionPane.WARNING_MESSAGE);
 			dateNgaySinh.requestFocus();
 			return null;
 		}
@@ -762,12 +761,9 @@ public class NhanVien_QL_GUI extends JPanel implements ActionListener {
 	}
 
 	private void showErrorAndFocus(JTextField txt, String message, int messageType) {
-		SwingUtilities.invokeLater(() -> {
-			JOptionPane.showMessageDialog(this, message, "Thông báo", messageType);
-			txt.requestFocus();
-			txt.selectAll();
-		});
-		throw new IllegalArgumentException(message);
+		JOptionPane.showMessageDialog(this, message, "Thông báo", messageType);
+		txt.requestFocus();
+		txt.selectAll();
 	}
 
 	private JLabel createLabel(String text, int x, int y) {

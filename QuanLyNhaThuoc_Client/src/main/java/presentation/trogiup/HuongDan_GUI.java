@@ -158,21 +158,23 @@ public class HuongDan_GUI extends JPanel {
             // Xác định tên file dựa vào vai trò
             String fileName = isQuanLy ? "HuongDanSuDung_QuanLy.pdf" : "HuongDanSuDung_NhanVien.pdf";
             
-            // Tìm file PDF
-            File pdfFile = new File("src\\resources\\hdsn\\" + fileName);
+            // Tìm file PDF theo thư mục dự án hiện tại hoặc từ resource đã bung ra file
+            String baseDir = System.getProperty("user.dir");
+            File pdfFile = new File(baseDir + File.separator + "src" + File.separator + "main" + File.separator + "resources"
+                    + File.separator + "resources" + File.separator + "hdsn" + File.separator + fileName);
             if (!pdfFile.exists()) {
-                pdfFile = new File("resources\\hdsn\\" + fileName);
+                pdfFile = new File(baseDir + File.separator + "resources" + File.separator + "hdsn" + File.separator + fileName);
             }
             if (!pdfFile.exists()) {
-                pdfFile = new File(fileName);
+                pdfFile = new File(baseDir + File.separator + fileName);
             }
 
             if (!pdfFile.exists()) {
                 showError("Không tìm thấy file " + fileName + "!\n" +
                          "Vui lòng đặt file trong:\n" +
-                         "- src\\resources\\hdsn\\\n" +
-                         "- resources\\hdsn\\\n" +
-                         "- Thư mục gốc");
+                         "- src/main/resources/resources/hdsn/\n" +
+                         "- resources/hdsn/\n" +
+                         "- Thư mục gốc project");
                 return;
             }
 

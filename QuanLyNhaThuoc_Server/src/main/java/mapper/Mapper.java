@@ -157,8 +157,12 @@ public final class Mapper {
     private static SanPham toSanPham(SanPhamDTO dto) {
         SanPham sanPham = new SanPham();
         sanPham.setMaSanPham(dto.getMaSanPham());
-        sanPham.setTenSanPham(dto.getTenSanPham());
-        sanPham.setLoaiSanPham(parseLoaiSanPham(dto.getLoaiSanPham()));
+        if (hasText(dto.getTenSanPham())) {
+            sanPham.setTenSanPham(dto.getTenSanPham());
+        }
+        if (dto.getLoaiSanPham() != null) {
+            sanPham.setLoaiSanPham(parseLoaiSanPham(dto.getLoaiSanPham()));
+        }
         sanPham.setSoDangKy(dto.getSoDangKy());
         sanPham.setDuongDung(parseDuongDung(dto.getDuongDung()));
         if (dto.getGiaNhap() > 0) {

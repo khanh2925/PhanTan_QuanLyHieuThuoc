@@ -78,6 +78,21 @@ public class QuanLySanPham_GUI extends JPanel implements ActionListener, MouseLi
             taiDuLieuSanPham();
         });
         xoaTrangForm();
+        addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & HierarchyEvent.SHOWING_CHANGED) != 0 && isShowing()) {
+                SwingUtilities.invokeLater(() -> {
+                    if (txtMaSP != null && txtMaSP.getText() != null) {
+                        String ma = txtMaSP.getText().trim();
+                        if (!ma.isEmpty() && sanPhamDAO.laySanPhamTheoMa(ma) != null) {
+                            QuyCachDongGoi qcGoc = quyCachDAO.timQuyCachGocTheoSanPham(ma);
+                            if (qcGoc != null) {
+                                return;
+                            }
+                        }
+                    }
+                });
+            }
+        });
 
         // Thiết lập phím tắt
         thietLapPhimTat();
@@ -676,8 +691,9 @@ public class QuanLySanPham_GUI extends JPanel implements ActionListener, MouseLi
             }
         } else if (o.equals(btnLamMoi)) {
             sanPhamDAO.refreshCache(); // Refresh cache
+            xoaTrangForm();
             taiDuLieuSanPham();
-            taiDuLieuSanPham();
+            txtTenSP.requestFocus();
         } else if (o.equals(btnChonAnh)) {
             chonHinhAnh();
         }
@@ -706,98 +722,55 @@ public class QuanLySanPham_GUI extends JPanel implements ActionListener, MouseLi
      * Nếu không thêm → Xóa sản phẩm vừa tạo
      */
     private void kiemTraVaYeuCauThemDonViGoc(String maSanPham) {
-        // Lấy thông tin sản phẩm
         SanPham sp = sanPhamDAO.laySanPhamTheoMa(maSanPham);
 
-        // Vòng lặp cho đến khi có đơn vị gốc hoặc người dùng hủy
-        boolean daCoGoc = false;
-        boolean lanDauTien = true; // Biến để theo dõi lần đầu tiên
+        int chon = JOptionPane.showConfirmDialog(this,
+                "⚠️ BẮT BUỘC PHẢI THÊM ĐƠN VỊ GỐC!\n\n" +
+                        "Sản phẩm: " + (sp != null ? sp.getTenSanPham() : maSanPham) + "\n\n" +
+                        "Bạn PHẢI thêm ít nhất 1 quy cách đóng gói làm đơn vị gốc (đơn vị cơ bản)\n" +
+                        "để hoàn tất việc tạo sản phẩm mới.\n\n" +
+                        "Chọn OK: Mở form thêm đơn vị gốc\n" +
+                        "Chọn Cancel: Hủy và xóa sản phẩm",
+                "Yêu cầu bắt buộc",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.WARNING_MESSAGE);
 
-        while (!daCoGoc) {
-            // Lần đầu tiên: Hiển thị thông báo hướng dẫn
-            if (lanDauTien) {
-                int chon = JOptionPane.showConfirmDialog(this,
-                        "⚠️ BẮT BUỘC PHẢI THÊM ĐƠN VỊ GỐC!\n\n" +
-                                "Sản phẩm: " + (sp != null ? sp.getTenSanPham() : maSanPham) + "\n\n" +
-                                "Bạn PHẢI thêm ít nhất 1 quy cách đóng gói làm đơn vị gốc (đơn vị cơ bản)\n" +
-                                "để hoàn tất việc tạo sản phẩm mới.\n\n" +
-                                "Chọn OK: Tiếp tục thêm đơn vị gốc\n" +
-                                "Chọn Cancel: Hủy và xóa sản phẩm",
-                        "Yêu cầu bắt buộc",
-                        JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-
-                if (chon != JOptionPane.OK_OPTION) {
-                    // Người dùng chọn Cancel → Xóa sản phẩm ngay
-                    boolean xoaOK = sanPhamDAO.xoaSanPham(maSanPham);
-                    if (xoaOK) {
-                        JOptionPane.showMessageDialog(this,
-                                "Đã hủy và xóa sản phẩm vừa tạo.\n" +
-                                        "Sản phẩm chưa có đơn vị gốc nên không thể lưu.",
-                                "Đã hủy",
-                                JOptionPane.INFORMATION_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(this,
-                                "⚠️ Không thể xóa sản phẩm!\n" +
-                                        "Vui lòng xóa thủ công hoặc thêm đơn vị gốc cho sản phẩm này.",
-                                "Lỗi",
-                                JOptionPane.ERROR_MESSAGE);
-                    }
-                    break; // Thoát vòng lặp
-                }
-                lanDauTien = false;
-            }
-
-            // Mở dialog thêm quy cách đóng gói
-            new QuyCachDongGoi_Dialog(this, maSanPham, null).setVisible(true);
-
-            // Kiểm tra xem đã thêm đơn vị gốc chưa
-            QuyCachDongGoi qcGoc = quyCachDAO.timQuyCachGocTheoSanPham(maSanPham);
-
-            if (qcGoc != null) {
-                // Đã có đơn vị gốc → Thành công
-                daCoGoc = true;
+        if (chon != JOptionPane.OK_OPTION) {
+            boolean xoaOK = sanPhamDAO.xoaSanPham(maSanPham);
+            if (xoaOK) {
                 JOptionPane.showMessageDialog(this,
-                        "✅ Thêm sản phẩm thành công!\n\n" +
-                                "Sản phẩm: " + (sp != null ? sp.getTenSanPham() : maSanPham) + "\n" +
-                                "Đơn vị gốc: " + qcGoc.getDonViTinh().getTenDonViTinh(),
-                        "Hoàn tất",
+                        "Đã hủy và xóa sản phẩm vừa tạo.\n" +
+                                "Sản phẩm chưa có đơn vị gốc nên không thể lưu.",
+                        "Đã hủy",
                         JOptionPane.INFORMATION_MESSAGE);
             } else {
-                // Chưa có đơn vị gốc → Hỏi có muốn thử lại không
-                int confirm = JOptionPane.showConfirmDialog(this,
-                        "❌ CHƯA CÓ ĐƠN VỊ GỐC!\n\n" +
-                                "Bạn chưa thêm đơn vị gốc cho sản phẩm này.\n\n" +
-                                "Chọn YES: Thử lại (thêm đơn vị gốc)\n" +
-                                "Chọn NO: Hủy và XÓA sản phẩm vừa tạo\n\n" +
-                                "⚠️ Nếu không thêm đơn vị gốc, sản phẩm sẽ bị XÓA!",
-                        "Chưa hoàn tất",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE);
-
-                if (confirm != JOptionPane.YES_OPTION) {
-                    // Người dùng chọn NO → Xóa sản phẩm
-                    boolean xoaOK = sanPhamDAO.xoaSanPham(maSanPham);
-                    if (xoaOK) {
-                        JOptionPane.showMessageDialog(this,
-                                "Đã hủy và xóa sản phẩm vừa tạo.\n" +
-                                        "Sản phẩm chưa có đơn vị gốc nên không thể lưu.",
-                                "Đã hủy",
-                                JOptionPane.INFORMATION_MESSAGE);
-                    } else {
-                        JOptionPane.showMessageDialog(this,
-                                "⚠️ Không thể xóa sản phẩm!\n" +
-                                        "Vui lòng xóa thủ công hoặc thêm đơn vị gốc cho sản phẩm này.",
-                                "Lỗi",
-                                JOptionPane.ERROR_MESSAGE);
-                    }
-                    break; // Thoát vòng lặp
-                }
-                // Nếu chọn YES → Tiếp tục vòng lặp, mở lại dialog
+                JOptionPane.showMessageDialog(this,
+                        "⚠️ Không thể xóa sản phẩm!\n" +
+                                "Vui lòng xóa thủ công hoặc thêm đơn vị gốc cho sản phẩm này.",
+                        "Lỗi",
+                        JOptionPane.ERROR_MESSAGE);
             }
+            return;
         }
 
-        // Cập nhật lại danh sách và làm mới form
+        new QuyCachDongGoi_Dialog(this, maSanPham, null).setVisible(true);
+
+        QuyCachDongGoi qcGoc = quyCachDAO.timQuyCachGocTheoSanPham(maSanPham);
+        if (qcGoc != null) {
+            JOptionPane.showMessageDialog(this,
+                    "✅ Thêm sản phẩm thành công!\n\n" +
+                            "Sản phẩm: " + (sp != null ? sp.getTenSanPham() : maSanPham) + "\n" +
+                            "Đơn vị gốc: " + qcGoc.getDonViTinh().getTenDonViTinh(),
+                    "Hoàn tất",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this,
+                    "⚠️ Đã lưu sản phẩm nhưng chưa có đơn vị gốc.\n\n" +
+                            "Bạn có thể tiếp tục thêm quy cách từ màn hình sản phẩm.",
+                    "Cảnh báo",
+                    JOptionPane.WARNING_MESSAGE);
+        }
+
         taiDuLieuSanPham();
         xoaTrangForm();
     }
@@ -1062,17 +1035,20 @@ public class QuanLySanPham_GUI extends JPanel implements ActionListener, MouseLi
     }
 
     private boolean kiemTraDuLieu() {
-        String ten = txtTenSP.getText().trim();
+        String ten = txtTenSP.getText() == null ? "" : txtTenSP.getText().trim();
         String gia = txtGiaNhap.getText().trim();
 
-        if (ten.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Tên sản phẩm không được để trống!");
+        if (ten.isEmpty() || "Nhập tên sản phẩm (F2)".equals(ten)
+                || txtTenSP.getForeground().equals(Color.GRAY)) {
+            JOptionPane.showMessageDialog(this, "Tên sản phẩm không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtTenSP.requestFocus();
+            txtTenSP.selectAll();
             return false;
         }
         if (!gia.matches("[0-9,.]+")) {
-            JOptionPane.showMessageDialog(this, "Giá nhập phải là số dương!");
+            JOptionPane.showMessageDialog(this, "Giá nhập phải là số dương!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             txtGiaNhap.requestFocus();
+            txtGiaNhap.selectAll();
             return false;
         }
         return true;

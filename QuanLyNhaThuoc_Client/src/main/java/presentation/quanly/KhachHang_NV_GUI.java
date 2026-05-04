@@ -357,12 +357,16 @@ public class KhachHang_NV_GUI extends JPanel implements ActionListener, Document
     private boolean validData() {
         String ten = txtTenKH.getText() == null ? "" : txtTenKH.getText().trim();
         String sdt = txtSDT.getText() == null ? "" : txtSDT.getText().trim();
-        if (ten.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Tên khách hàng không được rỗng!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        if (ten.isEmpty() || "Nhập tên khách hàng".equals(ten)) {
+            JOptionPane.showMessageDialog(this, "Tên khách hàng không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            txtTenKH.requestFocus();
+            txtTenKH.selectAll();
             return false;
         }
         if (!sdt.matches("0\\d{9}")) {
             JOptionPane.showMessageDialog(this, "Số điện thoại phải gồm 10 số và bắt đầu bằng 0!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            txtSDT.requestFocus();
+            txtSDT.selectAll();
             return false;
         }
         java.util.Date ngaySinhDate = dateNgaySinh.getDate();

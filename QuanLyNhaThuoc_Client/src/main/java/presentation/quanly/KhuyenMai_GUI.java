@@ -143,6 +143,7 @@ public class KhuyenMai_GUI extends JPanel implements ActionListener {
 		btnThem = new PillButton("TẠO KM"); btnThem.setFont(FONT_BOLD); btnThem.addActionListener(this); gbc.gridy = 0; p.add(btnThem, gbc);
 		btnSua = new PillButton("CẬP NHẬT"); btnSua.setFont(FONT_BOLD); btnSua.addActionListener(this); btnSua.setEnabled(false); gbc.gridy = 1; p.add(btnSua, gbc);
 		btnLamMoi = new PillButton("LÀM MỚI"); btnLamMoi.setFont(FONT_BOLD); btnLamMoi.addActionListener(this); gbc.gridy = 2; p.add(btnLamMoi, gbc);
+		capNhatNutSP();
 	}
 
 	private void taoBangDanhSach(JPanel p) {
@@ -253,17 +254,27 @@ public class KhuyenMai_GUI extends JPanel implements ActionListener {
 		dateNgayBD.setDate(parseDate(bd));
 		dateNgayKT.setDate(parseDate(kt));
 		cboLoaiKM.setSelectedIndex(String.valueOf(modelKhuyenMai.getValueAt(row, 7)).contains("hóa đơn") ? 0 : 1);
+		capNhatNutSP();
 		cboTrangThai.setSelectedIndex(String.valueOf(modelKhuyenMai.getValueAt(row, 8)).contains("Đang") ? 0 : 1);
 		loadSanPhamApDung(txtMaKM.getText().trim());
 		btnSua.setEnabled(true);
+		capNhatNutSP();
 	}
 
 	private void lamMoiForm() {
 		try { txtMaKM.setText(svc.taoMaKhuyenMai()); } catch (Exception ex) { txtMaKM.setText("KM-001"); }
-		txtTenKM.setText(""); txtGiaTri.setText(""); txtDieuKien.setText(""); txtSoLuong.setText(""); dateNgayBD.setDate(new Date()); dateNgayKT.setDate(new Date()); cboLoaiKM.setSelectedIndex(0); cboHinhThuc.setSelectedIndex(0); cboTrangThai.setSelectedIndex(0); tblKhuyenMai.clearSelection(); modelSanPhamApDung.setRowCount(0); btnSua.setEnabled(false); btnThem.setEnabled(true);
+		txtTenKM.setText(""); txtGiaTri.setText(""); txtDieuKien.setText(""); txtSoLuong.setText(""); dateNgayBD.setDate(new Date()); dateNgayKT.setDate(new Date()); cboLoaiKM.setSelectedIndex(0); cboHinhThuc.setSelectedIndex(0); cboTrangThai.setSelectedIndex(0); tblKhuyenMai.clearSelection(); modelSanPhamApDung.setRowCount(0); btnSua.setEnabled(false); btnThem.setEnabled(true); capNhatNutSP();
 	}
 
-	private void capNhatTrangThaiNut() { boolean chon = tblKhuyenMai.getSelectedRow() != -1; btnThem.setEnabled(!chon); btnSua.setEnabled(chon); }
+	private void capNhatTrangThaiNut() { boolean chon = tblKhuyenMai.getSelectedRow() != -1; btnThem.setEnabled(!chon); btnSua.setEnabled(chon); capNhatNutSP(); }
+
+	private void capNhatNutSP() {
+		boolean laTheoSanPham = cboLoaiKM != null && cboLoaiKM.getSelectedIndex() == 1;
+		boolean coKM = txtMaKM != null && !txtMaKM.getText().trim().isEmpty();
+		boolean enable = coKM && laTheoSanPham;
+		if (btnChonSP != null) btnChonSP.setEnabled(enable);
+		if (btnXoaSP != null) btnXoaSP.setEnabled(enable && tblSanPhamApDung != null && tblSanPhamApDung.getSelectedRow() != -1);
+	}
 	private JLabel createLabel(String text, int x, int y) { JLabel lbl = new JLabel(text); lbl.setFont(FONT_TEXT); lbl.setBounds(x, y, 100, 35); return lbl; }
 	private JTextField createTextField(int x, int y, int w) { JTextField txt = new JTextField(); txt.setFont(FONT_TEXT); txt.setBounds(x, y, w, 35); return txt; }
 	private JTable setupTable(DefaultTableModel model) { JTable table = new JTable(model); table.setFont(FONT_TEXT); table.setRowHeight(35); table.setSelectionBackground(new Color(0xC8E6C9)); table.setSelectionForeground(Color.BLACK); table.getTableHeader().setFont(FONT_BOLD); table.getTableHeader().setBackground(new Color(33, 150, 243)); table.getTableHeader().setForeground(Color.WHITE); return table; }
@@ -291,11 +302,51 @@ public class KhuyenMai_GUI extends JPanel implements ActionListener {
 	private void themKhuyenMai() throws Exception { if (!validData()) return; String ma = svc.taoMaKhuyenMai(); KhuyenMai km = toEntityFromForm(ma); if (svc.createKhuyenMai(km)) { loadDataKhuyenMai(); lamMoiForm(); } }
 	private void suaKhuyenMai() throws Exception { int row = tblKhuyenMai.getSelectedRow(); if (row < 0) return; KhuyenMai km = toEntityFromForm(String.valueOf(modelKhuyenMai.getValueAt(row, 1))); if (svc.updateKhuyenMai(km)) { loadDataKhuyenMai(); lamMoiForm(); } }
 	private void chonSanPhamApDung() {
-		if (txtMaKM.getText().trim().isEmpty()) { JOptionPane.showMessageDialog(this, "Vui lòng chọn hoặc tạo khuyến mãi trước!"); return; }
+		String maKM = txtMaKM.getText().trim();
+		if (maKM.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Vui lòng chọn hoặc tạo khuyến mãi trước!");
+			return;
+		}
+
 		DialogChonSanPhamApDung dialog = new DialogChonSanPhamApDung((JFrame) SwingUtilities.getWindowAncestor(this));
 		dialog.setLocationRelativeTo(this);
 		dialog.setVisible(true);
-		loadSanPhamApDung(txtMaKM.getText().trim());
+
+		DefaultTableModel modelDaChon = dialog.getModelDaChon();
+		if (modelDaChon == null || modelDaChon.getRowCount() == 0) {
+			loadSanPhamApDung(maKM);
+			return;
+		}
+
+		int daThem = 0;
+		int thatBai = 0;
+		StringBuilder loi = new StringBuilder();
+		for (int i = 0; i < modelDaChon.getRowCount(); i++) {
+			String maSP = String.valueOf(modelDaChon.getValueAt(i, 0)).trim();
+			if (maSP.isEmpty()) {
+				continue;
+			}
+			boolean ok = svc.createChiTietKhuyenMai(maKM, maSP);
+			if (ok) {
+				daThem++;
+			} else {
+				thatBai++;
+				loi.append("- ").append(maSP).append("\n");
+			}
+		}
+
+		loadSanPhamApDung(maKM);
+		if (daThem > 0 && thatBai == 0) {
+			JOptionPane.showMessageDialog(this, "Đã thêm sản phẩm vào khuyến mãi thành công!");
+		} else if (daThem > 0) {
+			JOptionPane.showMessageDialog(this,
+					"Đã thêm thành công " + daThem + " sản phẩm, nhưng có " + thatBai + " sản phẩm thất bại:\n\n" + loi,
+					"Cảnh báo", JOptionPane.WARNING_MESSAGE);
+		} else if (thatBai > 0) {
+			JOptionPane.showMessageDialog(this,
+					"Không thêm được sản phẩm nào vào khuyến mãi.\n\nLỗi:\n" + loi,
+					"Lỗi", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 	private void xoaSanPhamApDung() {
 		int row = tblSanPhamApDung.getSelectedRow();

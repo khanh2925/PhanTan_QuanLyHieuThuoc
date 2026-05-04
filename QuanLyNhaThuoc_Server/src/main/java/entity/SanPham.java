@@ -133,8 +133,6 @@ public class SanPham implements Serializable {
 
     public double getGiaBan() {
         if (chiTietBangGiaHienTai == null && giaBan <= 0) {
-            System.err.println("⚠ CẢNH BÁO: Sản phẩm '" + maSanPham + " - " + tenSanPham
-                    + "' không có bảng giá. Giá bán = 0.");
             return 0;
         }
         return giaBan;

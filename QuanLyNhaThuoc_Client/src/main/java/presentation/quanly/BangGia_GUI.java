@@ -3,6 +3,7 @@ package presentation.quanly;
 import com.toedter.calendar.JDateChooser;
 import dto.BangGiaDTO;
 import dto.ChiTietBangGiaDTO;
+import entity.SanPham;
 import network.ClientService;
 import presentation.component.border.RoundedBorder;
 import presentation.component.button.PillButton;
@@ -25,6 +26,7 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
     private final Color COLOR_PRIMARY = new Color(33, 150, 243);
 
     private final ClientService svc;
+    private final java.text.DecimalFormat dfNumber = new java.text.DecimalFormat("#,###");
 
     private JPanel pnHeader, pnCenter;
     private JTextField txtMaBG, txtTenBG, txtTimKiem, txtGiaTu, txtGiaDen, txtTiLe;
@@ -286,6 +288,21 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
         maBangGiaDangChon = modelBangGia.getValueAt(row, 1).toString();
         txtMaBG.setText(maBangGiaDangChon);
         txtTenBG.setText(String.valueOf(modelBangGia.getValueAt(row, 2)));
+
+        Object ngayObj = modelBangGia.getValueAt(row, 3);
+        if (ngayObj instanceof LocalDate) {
+            txtNgayApDung.setDate(java.sql.Date.valueOf((LocalDate) ngayObj));
+        } else if (ngayObj != null && !ngayObj.toString().isEmpty()) {
+            try {
+                txtNgayApDung.setDate(java.sql.Date.valueOf(LocalDate.parse(ngayObj.toString())));
+            } catch (Exception ignored) {}
+        }
+
+        String trangThai = String.valueOf(modelBangGia.getValueAt(row, 5));
+        boolean hoatDong = "Hoạt động".equals(trangThai);
+        cboTrangThai.setSelectedIndex(hoatDong ? 0 : 1);
+        chkHoatDong.setSelected(hoatDong);
+
         btnSua.setEnabled(true);
         loadChiTiet(maBangGiaDangChon);
     }
@@ -314,12 +331,30 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
             }
             modelMoPhong.setRowCount(0);
             stt = 1;
-            for (ChiTietBangGiaDTO ct : dsChiTietTam) {
-                modelMoPhong.addRow(new Object[]{stt++, "-", "Mẫu", ct.getGiaTu(), ct.getTiLe(), ct.getGiaTu() * ct.getTiLe()});
+            List<SanPham> danhSach = svc.getAllSanPhamTyped();
+            for (SanPham sp : danhSach) {
+                double giaBan = tinhGiaBanTheoBangGia(sp.getGiaNhap());
+                double tiLe = sp.getGiaNhap() > 0 ? ((giaBan / sp.getGiaNhap()) * 100.0) : 0;
+                modelMoPhong.addRow(new Object[]{stt++, sp.getMaSanPham(), sp.getTenSanPham(), dfNumber.format(sp.getGiaNhap()), String.format("%.2f%%", tiLe), dfNumber.format(giaBan)});
             }
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Không tải được chi tiết bảng giá: " + ex.getMessage());
         }
+    }
+
+    private double tinhGiaBanTheoBangGia(double giaNhap) {
+        if (giaNhap <= 0 || dsChiTietTam.isEmpty()) {
+            return giaNhap;
+        }
+        for (ChiTietBangGiaDTO ct : dsChiTietTam) {
+            double tu = ct.getGiaTu();
+            double den = ct.getGiaDen();
+            boolean hopLe = den <= 0 ? giaNhap >= tu : (giaNhap >= tu && giaNhap <= den);
+            if (hopLe) {
+                return giaNhap * ct.getTiLe();
+            }
+        }
+        return giaNhap;
     }
 
     private void themBangGia() throws Exception {
@@ -339,7 +374,15 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
         if (maBangGiaDangChon == null) throw new IllegalStateException("Chọn bảng giá cần cập nhật");
         BangGiaDTO bg = new BangGiaDTO();
         bg.setMaBangGia(maBangGiaDangChon);
-        bg.setMaNhanVien(null);
+        
+        int row = tblBangGia.getSelectedRow();
+        if (row >= 0) {
+            Object maNhanVien = modelBangGia.getValueAt(row, 4);
+            bg.setMaNhanVien(maNhanVien != null ? maNhanVien.toString() : null);
+        } else {
+            bg.setMaNhanVien(null);
+        }
+
         bg.setTenBangGia(txtTenBG.getText().trim());
         bg.setNgayApDung(getNgayApDung());
         bg.setHoatDong(cboTrangThai.getSelectedIndex() == 0);
