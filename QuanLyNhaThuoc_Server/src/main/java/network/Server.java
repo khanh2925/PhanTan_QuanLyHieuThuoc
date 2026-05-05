@@ -1,5 +1,7 @@
 package network;
 
+import db.DataSeeder;
+
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -10,6 +12,7 @@ public class Server {
     private static final int THREAD_POOL_SIZE = 20;
 
     public static void main(String[] args) {
+        DataSeeder.seed();
         ExecutorService pool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {

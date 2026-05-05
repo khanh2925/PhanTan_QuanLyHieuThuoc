@@ -247,24 +247,24 @@ public class DataSeeder {
             em.persist(pt1);           // CASCADE ALL → persist ctpt1
 
             NhaCungCap ncc4 = new NhaCungCap("NCC-20240101-0004",
-                    "DÆ°á»£c pháº©m Mekong", "0281111222",
-                    "12 Nguyá»…n TrÃ£i, Q.5, TP.HCM", "mekong@pharma.vn");
+                    "Dược phẩm Mekong", "0281111222",
+                    "12 Nguyễn Trãi, Q.5, TP.HCM", "mekong@pharma.vn");
             ncc4.setHoatDong(false);
             em.persist(ncc4);
 
-            KhachHang kh5 = new KhachHang("KH-20240101-0005", "KhÃ¡ch váº¯ng lai",
+            KhachHang kh5 = new KhachHang("KH-20240101-0005", "Khách vãng lai",
                     true, "0945678901", LocalDate.of(1988, 1, 1), false);
             em.persist(kh5);
 
-            NhanVien nv4 = new NhanVien("NV-20240101-0004", "Pháº¡m Thá»‹ Háº¡nh",
+            NhanVien nv4 = new NhanVien("NV-20240101-0004", "Phạm Thị Hạnh",
                     false, LocalDate.of(1994, 4, 14), "0904444444",
-                    "15 LÃ½ ThÆ°á»ng Kiá»‡t, Q.10, TP.HCM", false, 3, false);
+                    "15 Lý Thường Kiệt, Q.10, TP.HCM", false, 3, false);
             em.persist(nv4);
             em.persist(new TaiKhoan("TK-20240101-0004", "nhanvien03", "Nhanvien03", nv4));
 
-            SanPham sp6 = new SanPham("SP-000006", "Men tiÃªu hÃ³a Biozyme",
+            SanPham sp6 = new SanPham("SP-000006", "Men tiêu hóa Biozyme",
                     LoaiSanPham.THUC_PHAM_BO_SUNG, "VD-67890-14",
-                    DuongDung.UONG, 25000, null, "Ká»‡ D1", false);
+                    DuongDung.UONG, 25000, null, "Kệ D1", false);
             sp6.setChiTietBangGiaHienTai(ctbg1);
             em.persist(sp6);
             em.persist(new QuyCachDongGoi("QC-000011", dvtVien, sp6, 1, 0.00, true, true));
@@ -276,22 +276,22 @@ public class DataSeeder {
             em.persist(new LoSanPham("LO-000010", LocalDate.of(2026, 8, 15), 3, sp6));
 
             KhuyenMai km3 = new KhuyenMai(
-                    "KM-20240201-0001", "Khuyáº¿n mÃ£i háº¿t háº¡n",
+                    "KM-20240201-0001", "Khuyến mãi hết hạn",
                     LocalDate.of(2024, 2, 1), LocalDate.of(2024, 3, 1),
                     true, false,
                     HinhThucKM.GIAM_GIA_PHAN_TRAM, 15.0, 0.0, 20);
             KhuyenMai km4 = new KhuyenMai(
-                    "KM-20261201-0001", "Khuyáº¿n mÃ£i chÆ°a báº¯t Ä‘áº§u",
+                    "KM-20261201-0001", "Khuyến mãi chưa bắt đầu",
                     LocalDate.of(2026, 12, 1), LocalDate.of(2027, 1, 31),
                     true, false,
                     HinhThucKM.GIAM_GIA_PHAN_TRAM, 5.0, 0.0, 50);
             KhuyenMai km5 = new KhuyenMai(
-                    "KM-20240301-0001", "Khuyáº¿n mÃ£i ngá»«ng hoáº¡t Ä‘á»™ng",
+                    "KM-20240301-0001", "Khuyến mãi ngừng hoạt động",
                     LocalDate.of(2024, 3, 1), LocalDate.of(2027, 3, 1),
                     false, false,
                     HinhThucKM.GIAM_GIA_TIEN, 2000.0, 0.0, 40);
             KhuyenMai km6 = new KhuyenMai(
-                    "KM-20240401-0001", "Khuyáº¿n mÃ£i háº¿t sá»‘ lÆ°á»£ng",
+                    "KM-20240401-0001", "Khuyến mãi hết số lượng",
                     LocalDate.of(2024, 4, 1), LocalDate.of(2027, 4, 1),
                     true, false,
                     HinhThucKM.GIAM_GIA_PHAN_TRAM, 7.0, 0.0, 0);
@@ -327,7 +327,7 @@ public class DataSeeder {
             ph2.setNhanVien(nv3);
             ph2.setTrangThai(true);
             ChiTietPhieuHuy ctph2 = new ChiTietPhieuHuy(
-                    ph2, lo5, 2, sp4.getGiaNhap(), "LÃ´ gáº§n háº¿t háº¡n / thu há»“i", dvtVien,
+                    ph2, lo5, 2, sp4.getGiaNhap(), "Lô gần hết hạn / thu hồi", dvtVien,
                     ChiTietPhieuHuy.TU_CHOI);
             ph2.getChiTietPhieuHuyList().add(ctph2);
             ph2.capNhatTongTienTheoChiTiet();
@@ -339,7 +339,7 @@ public class DataSeeder {
             pt2.setNhanVien(nv3);
             pt2.setNgayLap(LocalDate.of(2025, 5, 22));
             pt2.setTrangThai(true);
-            ChiTietPhieuTra ctpt2 = new ChiTietPhieuTra(pt2, cthd3, "KhÃ¡ch Ä‘á»•i Ã½", 1, 1);
+            ChiTietPhieuTra ctpt2 = new ChiTietPhieuTra(pt2, cthd3, "Khách đổi ý", 1, 1);
             ctpt2.setDonViTinh(dvtVien);
             pt2.getChiTietPhieuTraList().add(ctpt2);
             pt2.capNhatTongTienHoan();

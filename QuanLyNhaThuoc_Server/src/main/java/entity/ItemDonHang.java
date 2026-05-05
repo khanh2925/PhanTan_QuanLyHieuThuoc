@@ -86,7 +86,8 @@ public class ItemDonHang implements Serializable {
         int heSo = getHeSoQuyCach();
         double tienGiamTren1DonVi = 0;
 
-        if (this.khuyenMai != null) {
+        if (this.khuyenMai != null && this.khuyenMai.getKhuyenMai() != null
+                && this.khuyenMai.getKhuyenMai().getHinhThuc() != null) {
             String hinhThuc = this.khuyenMai.getKhuyenMai().getHinhThuc().name();
             double giaTriKM = this.khuyenMai.getKhuyenMai().getGiaTri();
             if (hinhThuc.equals("GIAM_GIA_PHAN_TRAM")) {
@@ -126,7 +127,7 @@ public class ItemDonHang implements Serializable {
     }
 
     public String getTooltipKM() {
-        if (khuyenMai == null) return null;
+        if (khuyenMai == null || khuyenMai.getKhuyenMai() == null || khuyenMai.getKhuyenMai().getHinhThuc() == null) return null;
         String hinhThuc = khuyenMai.getKhuyenMai().getHinhThuc().name();
         double giaTri = khuyenMai.getKhuyenMai().getGiaTri();
         if (hinhThuc.equals("GIAM_GIA_PHAN_TRAM")) {
@@ -146,7 +147,7 @@ public class ItemDonHang implements Serializable {
     }
 
     public String getTextKM() {
-        if (khuyenMai == null) return "Không có KM";
+        if (khuyenMai == null || khuyenMai.getKhuyenMai() == null || khuyenMai.getKhuyenMai().getHinhThuc() == null) return "Không có KM";
         String hinhThuc = khuyenMai.getKhuyenMai().getHinhThuc().name();
         double giaTri = khuyenMai.getKhuyenMai().getGiaTri();
         if (hinhThuc.equals("GIAM_GIA_PHAN_TRAM")) {

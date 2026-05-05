@@ -428,6 +428,7 @@ public final class Mapper {
             dto.setSdtKhachHang(hd.getKhachHang().getSoDienThoai());
         }
         if (hd.getNhanVien() != null) {
+            dto.setMaNhanVien(hd.getNhanVien().getMaNhanVien());
             dto.setTenNhanVien(hd.getNhanVien().getTenNhanVien());
         }
         dto.setNgayLap(formatDate(hd.getNgayLap()));
@@ -562,7 +563,7 @@ public final class Mapper {
         if (ct.getKhuyenMai() != null) {
             dto.setMaKM(ct.getKhuyenMai().getMaKM());
             dto.setTenKM(ct.getKhuyenMai().getTenKM());
-            dto.setHinhThuc(ct.getKhuyenMai().getHinhThuc() != null ? ct.getKhuyenMai().getHinhThuc().getMoTa() : null);
+            dto.setHinhThuc(ct.getKhuyenMai().getHinhThuc() != null ? ct.getKhuyenMai().getHinhThuc().name() : null);
             dto.setGiaTri(ct.getKhuyenMai().getGiaTri());
             dto.setNgayBatDau(formatDate(ct.getKhuyenMai().getNgayBatDau()));
             dto.setNgayKetThuc(formatDate(ct.getKhuyenMai().getNgayKetThuc()));

@@ -308,8 +308,15 @@ public class TongQuanNV_GUI extends JPanel implements ActionListener, MouseListe
 
 		try {
 			Object tk = svc.getThongKeHoaDonHomNayCuaNhanVien(maNV);
-			int soHoaDon = getIntField(tk, "soHoaDon");
-			double tongTienBanHang = getDoubleField(tk, "tongTien");
+			int soHoaDon = 0;
+			double tongTienBanHang = 0d;
+			if (tk instanceof Object[] arr && arr.length >= 2) {
+				if (arr[0] instanceof Number n) soHoaDon = n.intValue();
+				if (arr[1] instanceof Number n) tongTienBanHang = n.doubleValue();
+			} else if (tk != null) {
+				soHoaDon = getIntField(tk, "soHoaDon");
+				tongTienBanHang = getDoubleField(tk, "tongTien");
+			}
 			txtSoDon.setText(String.valueOf(soHoaDon));
 			txtTongTienDaBan.setText(formatter.format(tongTienBanHang) + " ₫");
 

@@ -552,33 +552,33 @@ public class ClientHandler implements Runnable {
                     BangGiaDTO bg = bangGiaService.layBangGiaDangHoatDong();
                     response.setSuccess(bg != null);
                     response.setData(bg);
-                    response.setMessage(bg != null ? "TÃ¬m tháº¥y báº£ng giÃ¡ Ä‘ang hoáº¡t Ä‘á»™ng" : "KhÃ´ng cÃ³ báº£ng giÃ¡ Ä‘ang hoáº¡t Ä‘á»™ng");
+                    response.setMessage(bg != null ? "Tìm thấy bảng giá đang hoạt động" : "Không có bảng giá đang hoạt động");
                 }
                 case BANGGIA_LAY_THEO_MA -> {
                     BangGiaDTO bg = bangGiaService.layBangGiaTheoMa((String) data);
                     response.setSuccess(bg != null);
                     response.setData(bg);
-                    response.setMessage(bg != null ? "TÃ¬m tháº¥y" : "KhÃ´ng tÃ¬m tháº¥y báº£ng giÃ¡");
+                    response.setMessage(bg != null ? "Tìm thấy" : "Không tìm thấy bảng giá");
                 }
                 case BANGGIA_THEM -> {
                     boolean ok = bangGiaService.themBangGia((BangGiaDTO) data);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "ThÃªm báº£ng giÃ¡ thÃ nh cÃ´ng" : "ThÃªm báº£ng giÃ¡ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Thêm bảng giá thành công" : "Thêm bảng giá thất bại");
                 }
                 case BANGGIA_CAP_NHAT -> {
                     boolean ok = bangGiaService.capNhatBangGia((BangGiaDTO) data);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "Cáº­p nháº­t báº£ng giÃ¡ thÃ nh cÃ´ng" : "Cáº­p nháº­t báº£ng giÃ¡ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Cập nhật bảng giá thành công" : "Cập nhật bảng giá thất bại");
                 }
                 case BANGGIA_XOA -> {
                     boolean ok = bangGiaService.xoaBangGia((String) data);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "XÃ³a báº£ng giÃ¡ thÃ nh cÃ´ng" : "XÃ³a báº£ng giÃ¡ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Xóa bảng giá thành công" : "Xóa bảng giá thất bại");
                 }
                 case BANGGIA_HUY_HOAT_DONG_TAT_CA_TRU -> {
                     boolean ok = bangGiaService.huyHoatDongTatCaTruBangGia((String) data);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "Cáº­p nháº­t tráº¡ng thÃ¡i báº£ng giÃ¡ thÃ nh cÃ´ng" : "Cáº­p nháº­t tráº¡ng thÃ¡i báº£ng giÃ¡ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Cập nhật trạng thái bảng giá thành công" : "Cập nhật trạng thái bảng giá thất bại");
                 }
                 case BANGGIA_TAO_MA -> {
                     response.setSuccess(true);
@@ -591,12 +591,12 @@ public class ClientHandler implements Runnable {
                 case BANGGIA_THEM_CHI_TIET -> {
                     boolean ok = bangGiaService.themChiTietBangGia((ChiTietBangGiaDTO) data);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "ThÃªm chi tiáº¿t báº£ng giÃ¡ thÃ nh cÃ´ng" : "ThÃªm chi tiáº¿t báº£ng giÃ¡ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Thêm chi tiết bảng giá thành công" : "Thêm chi tiết bảng giá thất bại");
                 }
                 case BANGGIA_XOA_TAT_CA_CHI_TIET -> {
                     boolean ok = bangGiaService.xoaTatCaChiTiet((String) data);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "XÃ³a chi tiáº¿t báº£ng giÃ¡ thÃ nh cÃ´ng" : "XÃ³a chi tiáº¿t báº£ng giÃ¡ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Xóa chi tiết bảng giá thành công" : "Xóa chi tiết bảng giá thất bại");
                 }
 
                 // ==================== DonViTinh ====================
@@ -608,24 +608,24 @@ public class ClientHandler implements Runnable {
                     DonViTinh dvt = donViTinhService.timDonViTinhTheoMa((String) data);
                     response.setSuccess(dvt != null);
                     response.setData(dvt != null ? toDonViTinhDTO(dvt) : null);
-                    response.setMessage(dvt != null ? "TÃ¬m tháº¥y" : "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n vá»‹ tÃ­nh");
+                    response.setMessage(dvt != null ? "Tìm thấy" : "Không tìm thấy đơn vị tính");
                 }
                 case DONVITINH_THEM -> {
                     DonViTinh dvt = data instanceof DonViTinhDTO dto ? toDonViTinhEntity(dto) : (DonViTinh) data;
                     boolean ok = donViTinhService.themDonViTinh(dvt);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "ThÃªm Ä‘Æ¡n vá»‹ tÃ­nh thÃ nh cÃ´ng" : "ThÃªm Ä‘Æ¡n vá»‹ tÃ­nh tháº¥t báº¡i");
+                    response.setMessage(ok ? "Thêm đơn vị tính thành công" : "Thêm đơn vị tính thất bại");
                 }
                 case DONVITINH_CAP_NHAT -> {
                     DonViTinh dvt = data instanceof DonViTinhDTO dto ? toDonViTinhEntity(dto) : (DonViTinh) data;
                     boolean ok = donViTinhService.capNhatDonViTinh(dvt);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "Cáº­p nháº­t Ä‘Æ¡n vá»‹ tÃ­nh thÃ nh cÃ´ng" : "Cáº­p nháº­t Ä‘Æ¡n vá»‹ tÃ­nh tháº¥t báº¡i");
+                    response.setMessage(ok ? "Cập nhật đơn vị tính thành công" : "Cập nhật đơn vị tính thất bại");
                 }
                 case DONVITINH_XOA -> {
                     boolean ok = donViTinhService.xoaDonViTinh((String) data);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "XÃ³a Ä‘Æ¡n vá»‹ tÃ­nh thÃ nh cÃ´ng" : "XÃ³a Ä‘Æ¡n vá»‹ tÃ­nh tháº¥t báº¡i");
+                    response.setMessage(ok ? "Xóa đơn vị tính thành công" : "Xóa đơn vị tính thất bại");
                 }
                 case DONVITINH_TAO_MA -> {
                     response.setSuccess(true);
@@ -676,14 +676,14 @@ public class ClientHandler implements Runnable {
                     QuyCachDongGoi qc = quyCachDongGoiService.timQuyCachGocTheoSanPham((String) data);
                     response.setSuccess(qc != null);
                     response.setData(qc != null ? toQuyCachDongGoiDTO(qc) : null);
-                    response.setMessage(qc != null ? "TÃ¬m tháº¥y" : "KhÃ´ng tÃ¬m tháº¥y quy cÃ¡ch gá»‘c");
+                    response.setMessage(qc != null ? "Tìm thấy" : "Không tìm thấy quy cách gốc");
                 }
                 case QUYCACH_LAY_THEO_SAN_PHAM_VA_DVT -> {
                     Object[] params = (Object[]) data;
                     QuyCachDongGoi qc = quyCachDongGoiService.timQuyCachTheoSanPhamVaDonVi((String) params[0], (String) params[1]);
                     response.setSuccess(qc != null);
                     response.setData(qc != null ? toQuyCachDongGoiDTO(qc) : null);
-                    response.setMessage(qc != null ? "TÃ¬m tháº¥y" : "KhÃ´ng tÃ¬m tháº¥y quy cÃ¡ch");
+                    response.setMessage(qc != null ? "Tìm thấy" : "Không tìm thấy quy cách");
                 }
 
                 case QUYCACH_LAY_TAT_CA -> {
@@ -722,7 +722,7 @@ public class ClientHandler implements Runnable {
                     PhieuTraDTO pt = phieuTraService.layPhieuTraDTOTheoMa((String) data);
                     response.setSuccess(pt != null);
                     response.setData(pt);
-                    response.setMessage(pt != null ? "TÃ¬m tháº¥y" : "KhÃ´ng tÃ¬m tháº¥y phiáº¿u tráº£");
+                    response.setMessage(pt != null ? "Tìm thấy" : "Không tìm thấy phiếu trả");
                 }
                 case PHIEUTRA_LAY_CHI_TIET -> {
                     response.setSuccess(true);
@@ -753,7 +753,7 @@ public class ClientHandler implements Runnable {
                     }
                     boolean ok = phieuTraService.themPhieuTraVaChiTiet(pt, dsChiTiet);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "ThÃªm phiáº¿u tráº£ thÃ nh cÃ´ng" : "ThÃªm phiáº¿u tráº£ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Thêm phiếu trả thành công" : "Thêm phiếu trả thất bại");
                 }
                 case PHIEUTRA_CAP_NHAT_TRANG_THAI_GIAO_DICH -> {
                     Object[] params = (Object[]) data;
@@ -762,13 +762,13 @@ public class ClientHandler implements Runnable {
                             toNhanVienEntity(params[4]), (Integer) params[5]);
                     response.setSuccess(kq != null && kq.startsWith("OK"));
                     response.setData(kq);
-                    response.setMessage(response.isSuccess() ? "Cáº­p nháº­t chi tiáº¿t phiáº¿u tráº£ thÃ nh cÃ´ng" : "Cáº­p nháº­t chi tiáº¿t phiáº¿u tráº£ tháº¥t báº¡i");
+                    response.setMessage(response.isSuccess() ? "Cập nhật chi tiết phiếu trả thành công" : "Cập nhật chi tiết phiếu trả thất bại");
                 }
                 case PHIEUTRA_CAP_NHAT_TRANG_THAI -> {
                     Object[] params = (Object[]) data;
                     boolean ok = phieuTraService.capNhatTrangThaiPhieuTra((String) params[0], (Boolean) params[1]);
                     response.setSuccess(ok);
-                    response.setMessage(ok ? "Cáº­p nháº­t tráº¡ng thÃ¡i phiáº¿u tráº£ thÃ nh cÃ´ng" : "Cáº­p nháº­t tráº¡ng thÃ¡i phiáº¿u tráº£ tháº¥t báº¡i");
+                    response.setMessage(ok ? "Cập nhật trạng thái phiếu trả thành công" : "Cập nhật trạng thái phiếu trả thất bại");
                 }
                 case PHIEUTRA_TAO_MA -> {
                     response.setSuccess(true);

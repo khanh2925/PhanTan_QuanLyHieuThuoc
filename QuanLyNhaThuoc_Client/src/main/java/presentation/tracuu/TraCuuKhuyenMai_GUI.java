@@ -192,7 +192,7 @@ public class TraCuuKhuyenMai_GUI extends JPanel implements ActionListener, Mouse
 
         String[] colKM = {
                 "Mã KM", "Tên chương trình", "Loại KM", "Hình thức",
-                "Giá trị", "Ngày bắt đầu", "Ngày kết thúc", "SL còn", "Trạng thái"
+                "Giá trị", "Điều kiện áp dụng", "Ngày bắt đầu", "Ngày kết thúc", "SL còn", "Trạng thái"
         };
         modelKhuyenMai = new DefaultTableModel(colKM, 0) {
             @Override
@@ -202,7 +202,7 @@ public class TraCuuKhuyenMai_GUI extends JPanel implements ActionListener, Mouse
         };
         tblKhuyenMai = thietLapBang(modelKhuyenMai);
 
-        tblKhuyenMai.getColumnModel().getColumn(8).setCellRenderer(new DefaultTableCellRenderer() {
+        tblKhuyenMai.getColumnModel().getColumn(9).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {
@@ -519,6 +519,7 @@ public class TraCuuKhuyenMai_GUI extends JPanel implements ActionListener, Mouse
                 continue;
 
             String giaTriHienThi = "Giảm %".equals(hinhThucHienThi) ? df.format(km.getGiaTri()) + "%" : df.format(km.getGiaTri());
+            String dieuKienHienThi = km.isKhuyenMaiHoaDon() ? df.format(km.getDieuKienApDungHoaDon()) : "Theo sản phẩm áp dụng";
 
             modelKhuyenMai.addRow(new Object[] {
                     km.getMaKM(),
@@ -526,6 +527,7 @@ public class TraCuuKhuyenMai_GUI extends JPanel implements ActionListener, Mouse
                     km.isKhuyenMaiHoaDon() ? "Hóa đơn" : "Sản phẩm",
                     hinhThucHienThi,
                     giaTriHienThi,
+                    dieuKienHienThi,
                     km.getNgayBatDau() != null ? km.getNgayBatDau() : "",
                     km.getNgayKetThuc() != null ? km.getNgayKetThuc() : "",
                     km.getSoLuongKhuyenMai(),

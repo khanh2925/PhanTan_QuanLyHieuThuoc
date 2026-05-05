@@ -599,11 +599,15 @@ public class ClientService {
 
     @SuppressWarnings("unchecked")
     public <T> java.util.List<T> getActivePromotionDetailsByProduct(String maSanPham) {
+        Response r = sendReq(CommandType.SANPHAM_LAY_KHUYEN_MAI, maSanPham);
+        if (r != null && r.isSuccess() && r.getData() instanceof java.util.List<?> list) return (java.util.List<T>) toChiTietKhuyenMaiList(list);
         return java.util.Collections.emptyList();
     }
 
     @SuppressWarnings("unchecked")
     public <T> java.util.List<T> getActiveKhuyenMai() {
+        Response r = sendReq(CommandType.KHUYENMAI_LAY_DANG_HOAT_DONG, null);
+        if (r != null && r.isSuccess() && r.getData() instanceof java.util.List<?> list) return (java.util.List<T>) toKhuyenMaiList(list);
         return java.util.Collections.emptyList();
     }
 
@@ -627,17 +631,16 @@ public class ClientService {
     }
 
     public Object getThongKeHoaDonHomNayCuaNhanVien(String maNhanVien) {
-        Response r = sendReq(CommandType.PHIEUTRA_DEM_HOM_NAY_NV, new Object[] { "HOADON_HOM_NAY_NV", maNhanVien });
-        if (r != null && r.isSuccess() && r.getData() != null) return r.getData();
         int soHoaDon = 0;
         double tongTien = 0;
         LocalDate today = LocalDate.now();
         for (HoaDonDTO hd : getAllHoaDon()) {
             LocalDate ngay = parseDateFlexible(hd.getNgayLap());
-            if (today.equals(ngay)) {
-                soHoaDon++;
-                tongTien += hd.getThanhToan() > 0 ? hd.getThanhToan() : hd.getTongTien();
-            }
+            if (!today.equals(ngay)) continue;
+            if (maNhanVien != null && hd.getMaNhanVien() != null
+                    && !maNhanVien.equals(hd.getMaNhanVien())) continue;
+            soHoaDon++;
+            tongTien += hd.getThanhToan() > 0 ? hd.getThanhToan() : hd.getTongTien();
         }
         return new Object[] { soHoaDon, tongTien };
     }
@@ -1293,6 +1296,18 @@ public class ClientService {
         return result;
     }
 
+    private HinhThucKM parseHinhThucKM(String value) {
+        if (value == null || value.isBlank()) return HinhThucKM.GIAM_GIA_PHAN_TRAM;
+        String normalized = value.trim().toUpperCase(java.util.Locale.ROOT);
+        for (HinhThucKM hinhThuc : HinhThucKM.values()) {
+            if (hinhThuc.name().equals(normalized) || hinhThuc.getMoTa().toUpperCase(java.util.Locale.ROOT).equals(normalized)) {
+                return hinhThuc;
+            }
+        }
+        if (normalized.contains("TIEN") || normalized.contains("TIỀN")) return HinhThucKM.GIAM_GIA_TIEN;
+        return HinhThucKM.GIAM_GIA_PHAN_TRAM;
+    }
+
     private Object toKhuyenMaiObject(Object data) {
         if (data instanceof KhuyenMaiDTO dto) {
             KhuyenMai km = new KhuyenMai(dto.getMaKM());
@@ -1301,9 +1316,7 @@ public class ClientService {
             if (dto.getNgayKetThuc() != null && !dto.getNgayKetThuc().isBlank()) km.setNgayKetThuc(LocalDate.parse(dto.getNgayKetThuc(), DISPLAY_DATE_FORMAT));
             km.setTrangThai(dto.isTrangThai());
             km.setKhuyenMaiHoaDon(dto.isKhuyenMaiHoaDon());
-            if (dto.getHinhThuc() != null && !dto.getHinhThuc().isBlank()) {
-                try { km.setHinhThuc(HinhThucKM.valueOf(dto.getHinhThuc())); } catch (RuntimeException ignored) { }
-            }
+            km.setHinhThuc(parseHinhThucKM(dto.getHinhThuc()));
             km.setGiaTri(dto.getGiaTri());
             km.setDieuKienApDungHoaDon(dto.getDieuKienApDungHoaDon());
             km.setSoLuongKhuyenMai(dto.getSoLuongKhuyenMai());
@@ -1324,6 +1337,8 @@ public class ClientService {
             sp.setTenSanPham(dto.getTenSanPham());
             KhuyenMai km = new KhuyenMai(dto.getMaKM());
             km.setTenKM(dto.getTenKM());
+            km.setHinhThuc(parseHinhThucKM(dto.getHinhThuc()));
+            km.setGiaTri(dto.getGiaTri());
             return new ChiTietKhuyenMaiSanPham(sp, km);
         }
         return data;
