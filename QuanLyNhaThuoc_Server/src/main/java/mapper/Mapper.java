@@ -596,7 +596,9 @@ public final class Mapper {
         hoaDon.setNgayLap(parseDisplayDateOrToday(dto.getNgayLap()));
         hoaDon.setThuocKeDon(dto.isThuocKeDon());
         if (hasText(dto.getMaKhuyenMai())) {
-            hoaDon.setKhuyenMai(new KhuyenMai(dto.getMaKhuyenMai()));
+            // Store maKM in transient field — DAO will fetch managed entity and call setKhuyenMai()
+            // (calling setKhuyenMai with a stub causes null assignment because isKhuyenMaiHoaDon() = false)
+            hoaDon.setPendingMaKhuyenMai(dto.getMaKhuyenMai());
         }
         List<ChiTietHoaDon> chiTietList = new ArrayList<>();
         if (dto.getChiTietList() != null) {

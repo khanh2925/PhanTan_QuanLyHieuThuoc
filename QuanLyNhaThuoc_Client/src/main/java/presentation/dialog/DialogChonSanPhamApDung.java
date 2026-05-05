@@ -207,7 +207,7 @@ public class DialogChonSanPhamApDung extends JDialog {
 
 			// ======= LỌC THEO LOẠI CHUẨN ENUM =======
 			if (!"Tất cả".equals(loaiChon)) {
-				if (!sp.getLoaiSanPham().getTenLoai().equals(loaiChon)) {
+				if (sp.getLoaiSanPham() == null || !sp.getLoaiSanPham().getTenLoai().equals(loaiChon)) {
 					continue;
 				}
 			}

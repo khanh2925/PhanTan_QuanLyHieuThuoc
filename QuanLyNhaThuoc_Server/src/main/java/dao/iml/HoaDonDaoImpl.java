@@ -90,9 +90,13 @@ public class HoaDonDaoImpl
                 }
 
                 // 4. Attach KM hóa đơn nếu có
-                //    setKhuyenMai() gọi capNhatDuLieuHoaDon() → OK vì chi tiết đã có managed refs
-                if (hd.getKhuyenMai() != null) {
-                    KhuyenMai kmHD = em.find(KhuyenMai.class, hd.getKhuyenMai().getMaKM());
+                //    Ưu tiên pendingMaKhuyenMai (từ Mapper DTO) vì setKhuyenMai(stub) bị null hoá
+                //    do isKhuyenMaiHoaDon() = false trên stub. setKhuyenMai(managed) sẽ hoạt động đúng.
+                String maKMPending = hd.getKhuyenMai() != null
+                        ? hd.getKhuyenMai().getMaKM()
+                        : hd.getPendingMaKhuyenMai();
+                if (maKMPending != null && !maKMPending.isBlank()) {
+                    KhuyenMai kmHD = em.find(KhuyenMai.class, maKMPending);
                     if (kmHD != null) hd.setKhuyenMai(kmHD);
                 }
 

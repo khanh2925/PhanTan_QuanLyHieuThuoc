@@ -36,6 +36,13 @@ public class HoaDon implements Serializable {
 
     private boolean thuocKeDon;
 
+    /** Transient holder for maKhuyenMai from DTO — bypasses setKhuyenMai() validation stub issue */
+    @Transient
+    private String pendingMaKhuyenMai;
+
+    public String getPendingMaKhuyenMai() { return pendingMaKhuyenMai; }
+    public void setPendingMaKhuyenMai(String maKM) { this.pendingMaKhuyenMai = maKM; }
+
     public HoaDon() {
         this.danhSachChiTiet = new ArrayList<>();
         this.ngayLap = LocalDate.now();

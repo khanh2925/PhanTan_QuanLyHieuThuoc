@@ -3,7 +3,9 @@ package presentation.quanly;
 import com.toedter.calendar.JDateChooser;
 import dto.BangGiaDTO;
 import dto.ChiTietBangGiaDTO;
+import dto.TaiKhoanDTO;
 import entity.SanPham;
+import entity.Session;
 import network.ClientService;
 import presentation.component.border.RoundedBorder;
 import presentation.component.button.PillButton;
@@ -222,15 +224,32 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
 
         JPanel pnBottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         pnBottom.setBackground(Color.WHITE);
+
         txtGiaTu = new JTextField(8);
+        txtGiaTu.setEditable(false);
+        txtGiaTu.setBackground(new Color(0xEEEEEE));
+        txtGiaTu.setToolTipText("Giá từ — tự động điền theo quy tắc trước");
+
         txtGiaDen = new JTextField(8);
         txtTiLe = new JTextField(6);
-        chkKhoangCuoi = new JCheckBox("Trở lên");
+        chkKhoangCuoi = new JCheckBox("Trở lên (∞)");
+
+        // Khi chọn "Trở lên": khoá trường Đến và hiển thị ∞
+        chkKhoangCuoi.addItemListener(e -> {
+            boolean selected = chkKhoangCuoi.isSelected();
+            txtGiaDen.setEnabled(!selected);
+            if (selected) {
+                txtGiaDen.setText("∞");
+            }
+            // Khi bỏ chọn: chỉ mở lại trường, giữ nguyên nội dung (chonChiTiet sẽ điền đúng)
+        });
+
         btnThemCT = new PillButton("Thêm CT");
         btnSuaCT = new PillButton("Sửa CT");
         btnXoaCT = new PillButton("Xóa CT");
         btnLamMoiCT = new PillButton("Làm mới CT");
         for (JButton b : new JButton[]{btnThemCT, btnSuaCT, btnXoaCT, btnLamMoiCT}) b.addActionListener(this);
+
         pnBottom.add(new JLabel("Từ")); pnBottom.add(txtGiaTu);
         pnBottom.add(new JLabel("Đến")); pnBottom.add(txtGiaDen);
         pnBottom.add(chkKhoangCuoi);
@@ -313,30 +332,34 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
         if (row < 0 || row >= dsChiTietTam.size()) return;
         ChiTietBangGiaDTO ct = dsChiTietTam.get(row);
         txtGiaTu.setText(String.valueOf(ct.getGiaTu()));
-        txtGiaDen.setText(ct.getGiaDen() == 0 ? "" : String.valueOf(ct.getGiaDen()));
         txtTiLe.setText(String.valueOf(ct.getTiLe()));
-        chkKhoangCuoi.setSelected(ct.getGiaDen() == 0 || ct.getGiaDen() == ct.getGiaTu());
+        boolean isKhoangCuoi = ct.getGiaDen() <= 0;
+        chkKhoangCuoi.setSelected(isKhoangCuoi);
+        if (!isKhoangCuoi) {
+            // Override the listener's no-clear: fill in the actual value
+            txtGiaDen.setText(String.valueOf((long) ct.getGiaDen()));
+        }
     }
 
     private void loadChiTiet(String maBangGia) {
         try {
-            modelChiTiet.setRowCount(0);
             dsChiTietTam.clear();
             List<?> list = svc.getChiTietBangGia(maBangGia);
-            int stt = 1;
             for (Object o : list) {
                 if (!(o instanceof ChiTietBangGiaDTO ct)) continue;
                 dsChiTietTam.add(ct);
-                modelChiTiet.addRow(new Object[]{stt++, ct.getGiaTu(), ct.getGiaDen() == 0 ? "∞" : ct.getGiaDen(), ct.getTiLe(), ct.getGiaTu() * ct.getTiLe()});
             }
+            refreshChiTietTable();
+            // Cập nhật bảng mô phỏng
             modelMoPhong.setRowCount(0);
-            stt = 1;
+            int stt = 1;
             List<SanPham> danhSach = svc.getAllSanPhamTyped();
             for (SanPham sp : danhSach) {
                 double giaBan = tinhGiaBanTheoBangGia(sp.getGiaNhap());
                 double tiLe = sp.getGiaNhap() > 0 ? ((giaBan / sp.getGiaNhap()) * 100.0) : 0;
                 modelMoPhong.addRow(new Object[]{stt++, sp.getMaSanPham(), sp.getTenSanPham(), dfNumber.format(sp.getGiaNhap()), String.format("%.2f%%", tiLe), dfNumber.format(giaBan)});
             }
+            autoFillTuField();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, "Không tải được chi tiết bảng giá: " + ex.getMessage());
         }
@@ -357,24 +380,43 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
         return giaNhap;
     }
 
+    /** Tạo bảng giá mới — yêu cầu ít nhất 1 quy tắc và tên hợp lệ */
     private void themBangGia() throws Exception {
+        String tenBG = txtTenBG.getText().trim();
+        if (tenBG.isEmpty()) throw new IllegalArgumentException("Vui lòng nhập tên bảng giá");
+        if (dsChiTietTam.isEmpty())
+            throw new IllegalStateException("Phải thêm ít nhất 1 quy tắc giá trước khi tạo bảng giá");
+
+        String maBG = txtMaBG.getText().trim();
+        if (maBG.isEmpty()) maBG = svc.taoMaBangGia();
+        if (maBG == null || maBG.isEmpty()) throw new IllegalStateException("Không thể tạo mã bảng giá");
+
         BangGiaDTO bg = new BangGiaDTO();
-        bg.setMaBangGia(svc.taoMaBangGia());
-        bg.setMaNhanVien(null);
-        bg.setTenBangGia(txtTenBG.getText().trim());
+        bg.setMaBangGia(maBG);
+        TaiKhoanDTO tk = Session.getInstance().getTaiKhoanDangNhap();
+        bg.setMaNhanVien(tk != null ? tk.getMaNhanVien() : null);
+        bg.setTenBangGia(tenBG);
         bg.setNgayApDung(getNgayApDung());
         bg.setHoatDong(cboTrangThai.getSelectedIndex() == 0);
         if (bg.isHoatDong()) svc.deactivateAllBangGiaExcept(bg.getMaBangGia());
         if (!svc.createBangGia(bg)) throw new IllegalStateException("Thêm bảng giá thất bại");
+
+        // Lưu tất cả quy tắc chi tiết đã cấu hình
+        for (ChiTietBangGiaDTO ct : dsChiTietTam) {
+            ct.setMaBangGia(maBG);
+            svc.createChiTietBangGia(ct);
+        }
+
         xuLyLamMoi();
         loadBangGia("");
+        JOptionPane.showMessageDialog(this, "Tạo bảng giá thành công!", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void capNhatBangGia() throws Exception {
         if (maBangGiaDangChon == null) throw new IllegalStateException("Chọn bảng giá cần cập nhật");
         BangGiaDTO bg = new BangGiaDTO();
         bg.setMaBangGia(maBangGiaDangChon);
-        
+
         int row = tblBangGia.getSelectedRow();
         if (row >= 0) {
             Object maNhanVien = modelBangGia.getValueAt(row, 4);
@@ -391,43 +433,121 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
         loadBangGia("");
     }
 
+    /** Thêm quy tắc vào danh sách tạm — không cần chọn bảng giá trước (cho phép cấu hình trước khi tạo) */
     private void themChiTietBangGia() throws Exception {
-        if (maBangGiaDangChon == null) throw new IllegalStateException("Chọn bảng giá trước");
         ChiTietBangGiaDTO ct = parseChiTietForm();
-        ct.setMaBangGia(maBangGiaDangChon);
-        if (!svc.createChiTietBangGia(ct)) throw new IllegalStateException("Thêm chi tiết thất bại");
-        loadChiTiet(maBangGiaDangChon);
+        dsChiTietTam.add(ct);
+        if (maBangGiaDangChon != null) {
+            ct.setMaBangGia(maBangGiaDangChon);
+            if (!svc.createChiTietBangGia(ct)) throw new IllegalStateException("Thêm chi tiết thất bại");
+        }
+        refreshChiTietTable();
         resetChiTietForm();
     }
 
     private void suaChiTietBangGia() throws Exception {
-        if (maBangGiaDangChon == null) throw new IllegalStateException("Chọn bảng giá trước");
-        if (chiTietDangChon < 0 || chiTietDangChon >= dsChiTietTam.size()) throw new IllegalStateException("Chọn 1 dòng chi tiết cần sửa");
+        if (chiTietDangChon < 0 || chiTietDangChon >= dsChiTietTam.size())
+            throw new IllegalStateException("Chọn 1 dòng chi tiết cần sửa");
         ChiTietBangGiaDTO ct = parseChiTietForm();
-        ct.setMaBangGia(maBangGiaDangChon);
+        if (maBangGiaDangChon != null) ct.setMaBangGia(maBangGiaDangChon);
         dsChiTietTam.set(chiTietDangChon, ct);
-        if (!svc.deleteAllChiTietBangGia(maBangGiaDangChon)) throw new IllegalStateException("Không xóa được chi tiết cũ");
-        for (ChiTietBangGiaDTO item : dsChiTietTam) {
-            if (!svc.createChiTietBangGia(item)) throw new IllegalStateException("Không lưu lại được chi tiết");
-        }
-        loadChiTiet(maBangGiaDangChon);
+        if (maBangGiaDangChon != null) syncChiTietToDb();
+        refreshChiTietTable();
+        chiTietDangChon = -1;
     }
 
     private void xoaChiTietBangGia() throws Exception {
-        if (maBangGiaDangChon == null) throw new IllegalStateException("Chọn bảng giá trước");
-        if (JOptionPane.showConfirmDialog(this, "Xóa toàn bộ chi tiết của bảng giá này?", "Xác nhận", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
-        if (!svc.deleteAllChiTietBangGia(maBangGiaDangChon)) throw new IllegalStateException("Xóa chi tiết thất bại");
-        loadChiTiet(maBangGiaDangChon);
+        if (chiTietDangChon < 0 || chiTietDangChon >= dsChiTietTam.size())
+            throw new IllegalStateException("Chọn 1 dòng chi tiết cần xóa");
+        if (JOptionPane.showConfirmDialog(this, "Xóa quy tắc đã chọn?", "Xác nhận", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+        dsChiTietTam.remove(chiTietDangChon);
+        if (maBangGiaDangChon != null) syncChiTietToDb();
+        refreshChiTietTable();
+        chiTietDangChon = -1;
+        autoFillTuField();
+    }
+
+    /** Đồng bộ dsChiTietTam xuống DB (xóa tất cả rồi thêm lại) */
+    private void syncChiTietToDb() throws Exception {
+        if (maBangGiaDangChon == null) return;
+        if (!svc.deleteAllChiTietBangGia(maBangGiaDangChon))
+            throw new IllegalStateException("Không xóa được chi tiết cũ");
+        for (ChiTietBangGiaDTO item : dsChiTietTam) {
+            item.setMaBangGia(maBangGiaDangChon);
+            if (!svc.createChiTietBangGia(item)) throw new IllegalStateException("Không lưu lại được chi tiết");
+        }
+    }
+
+    /** Refresh bảng chi tiết từ dsChiTietTam (không query DB) */
+    private void refreshChiTietTable() {
+        modelChiTiet.setRowCount(0);
+        int stt = 1;
+        for (ChiTietBangGiaDTO ct : dsChiTietTam) {
+            modelChiTiet.addRow(new Object[]{
+                stt++,
+                ct.getGiaTu(),
+                ct.getGiaDen() <= 0 ? "∞" : ct.getGiaDen(),
+                ct.getTiLe(),
+                ct.getGiaTu() * ct.getTiLe()
+            });
+        }
+    }
+
+    /** Tự động điền trường "Từ" dựa trên quy tắc cuối trong danh sách */
+    private void autoFillTuField() {
+        if (dsChiTietTam.isEmpty()) {
+            txtGiaTu.setText("0");
+            btnThemCT.setEnabled(true);
+        } else {
+            ChiTietBangGiaDTO last = dsChiTietTam.get(dsChiTietTam.size() - 1);
+            if (last.getGiaDen() <= 0) {
+                // Quy tắc cuối đã là "Trở lên" — không thể thêm thêm
+                txtGiaTu.setText("∞");
+                btnThemCT.setEnabled(false);
+            } else {
+                txtGiaTu.setText(String.valueOf(last.getGiaDen()));
+                btnThemCT.setEnabled(true);
+            }
+        }
     }
 
     private void resetChiTietForm() {
-        txtGiaTu.setText(""); txtGiaDen.setText(""); txtTiLe.setText(""); chkKhoangCuoi.setSelected(false);
+        chkKhoangCuoi.setSelected(false);
+        txtGiaDen.setEnabled(true);
+        txtGiaDen.setText("");
+        txtTiLe.setText("");
+        autoFillTuField();
     }
 
     private ChiTietBangGiaDTO parseChiTietForm() {
-        double giaTu = parseDouble(txtGiaTu.getText());
-        double giaDen = chkKhoangCuoi.isSelected() ? giaTu : parseDouble(txtGiaDen.getText());
+        String giaTuStr = txtGiaTu.getText().trim();
+        if ("∞".equals(giaTuStr))
+            throw new IllegalStateException("Đã có quy tắc 'Trở lên' (∞). Không thể thêm quy tắc mới.");
+
+        double giaTu = parseDouble(giaTuStr);
+        double giaDen = chkKhoangCuoi.isSelected() ? 0 : parseDouble(txtGiaDen.getText().trim());
         double tiLe = parseDouble(txtTiLe.getText());
+
+        if (giaTu < 0) throw new IllegalArgumentException("Giá từ phải lớn hơn hoặc bằng 0");
+        if (tiLe <= 0) throw new IllegalArgumentException("Tỉ lệ phải lớn hơn 0");
+        if (!chkKhoangCuoi.isSelected() && giaDen <= giaTu)
+            throw new IllegalArgumentException("Giá đến phải lớn hơn giá từ");
+
+        // Kiểm tra trùng / chồng lấp với các quy tắc hiện có
+        double newTu = giaTu;
+        double newDen = chkKhoangCuoi.isSelected() ? Double.MAX_VALUE : giaDen;
+        for (int i = 0; i < dsChiTietTam.size(); i++) {
+            if (i == chiTietDangChon) continue; // bỏ qua dòng đang sửa
+            ChiTietBangGiaDTO existing = dsChiTietTam.get(i);
+            double exTu = existing.getGiaTu();
+            double exDen = existing.getGiaDen() <= 0 ? Double.MAX_VALUE : existing.getGiaDen();
+            if (newTu < exDen && newDen > exTu) {
+                throw new IllegalArgumentException(
+                    "Quy tắc mới bị chồng lấp với quy tắc hiện có ["
+                    + (long) exTu + " → " + (existing.getGiaDen() <= 0 ? "∞" : (long) existing.getGiaDen()) + "]");
+            }
+        }
+
         ChiTietBangGiaDTO ct = new ChiTietBangGiaDTO();
         ct.setGiaTu(giaTu);
         ct.setGiaDen(giaDen);
@@ -447,7 +567,13 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
     }
 
     private void xuLyLamMoi() {
-        txtMaBG.setText("");
+        // Tự động tạo mã mới khi ở chế độ tạo mới
+        try {
+            String maMoi = svc.taoMaBangGia();
+            txtMaBG.setText(maMoi != null ? maMoi : "");
+        } catch (Exception ignored) {
+            txtMaBG.setText("");
+        }
         txtTenBG.setText("");
         txtTimKiem.setText("");
         txtNgayApDung.setDate(java.sql.Date.valueOf(LocalDate.now()));
@@ -457,6 +583,7 @@ public class BangGia_GUI extends JPanel implements ActionListener, MouseListener
         maBangGiaDangChon = null;
         chiTietDangChon = -1;
         btnSua.setEnabled(false);
+        dsChiTietTam.clear();
         resetChiTietForm();
         modelBangGia.setRowCount(0);
         modelChiTiet.setRowCount(0);
